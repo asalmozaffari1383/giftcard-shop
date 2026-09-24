@@ -5,6 +5,7 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
+    path("health/", include("apps.common.urls")),
     path("admin/", admin.site.urls),
     path("api/v1/auth/", include("apps.users.urls")),
     path("api/v1/catalog/", include("apps.catalog.urls")),

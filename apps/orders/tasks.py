@@ -5,7 +5,7 @@ from .models import Order
 from .services import expire_order
 
 
-@shared_task
+@shared_task(acks_late=True, reject_on_worker_lost=True)
 def expire_reservations():
     """Scheduled sweep; each order rechecks expiry under a row lock."""
     order_ids = list(Order.objects.filter(status=Order.Status.PENDING, expires_at__lte=timezone.now())

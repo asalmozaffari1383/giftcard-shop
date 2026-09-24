@@ -1,0 +1,14 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+.env
+media
+staticfiles
+.pytest_cache
+.coverage
+frontend/node_modules
+frontend/.next
+frontend/.env.local
+npm-debug.log*

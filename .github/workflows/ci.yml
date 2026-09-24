@@ -1,0 +1,58 @@
+name: Backend CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: marketplace
+          POSTGRES_USER: marketplace
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U marketplace -d marketplace"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
+    env:
+      DEBUG: "true"
+      SECRET_KEY: ci-only-secret-key-with-at-least-thirty-two-characters
+      POSTGRES_DB: marketplace
+      POSTGRES_USER: marketplace
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: 127.0.0.1
+      REDIS_URL: redis://127.0.0.1:6379/0
+      INVENTORY_FERNET_KEYS: x7S8AdRslBhT80MNRJ4dJa9Y_hcT4R1h79ehD1xOuA4=
+      INVENTORY_FINGERPRINT_KEY: ci-only-stable-fingerprint-key-with-32-characters
+      PUBLIC_BASE_URL: http://localhost:8000
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: ruff check .
+      - run: python manage.py makemigrations --check --dry-run
+      - run: python manage.py migrate --noinput
+      - run: python manage.py test --verbosity 1
+      - run: python manage.py spectacular --validate --file /tmp/schema.yaml

@@ -9,7 +9,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from apps.common.permissions import IsStaffRole
 
 from .models import Ticket, TicketMessage
-from .serializers import InquirySerializer, MessageSerializer, TicketSerializer
+from .serializers import InquirySerializer, MessageSerializer, TicketSerializer, TicketStatusSerializer
 
 
 class TicketListView(generics.ListCreateAPIView):
@@ -77,8 +77,38 @@ class StaffTicketReplyView(generics.GenericAPIView):
         return Response(MessageSerializer(message).data, status=status.HTTP_201_CREATED)
 
 
+class StaffTicketStatusView(generics.GenericAPIView):
+    serializer_class = TicketStatusSerializer
+    permission_classes = [IsStaffRole]
+
+    def patch(self, request, pk):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        with transaction.atomic():
+            ticket = Ticket.objects.select_for_update().filter(pk=pk).first()
+            if not ticket:
+                raise ValidationError("تیکت یافت نشد.")
+            ticket.status = serializer.validated_data["status"]
+            ticket.save(update_fields=["status", "updated_at"])
+        return Response(TicketSerializer(ticket, context={"request": request}).data)
+
+
+class TicketCloseView(generics.GenericAPIView):
+    serializer_class = TicketStatusSerializer
+
+    @extend_schema(request=None, responses=TicketSerializer)
+    def post(self, request, pk):
+        with transaction.atomic():
+            ticket = Ticket.objects.select_for_update().filter(pk=pk, user=request.user).first()
+            if not ticket:
+                raise ValidationError("تیکت یافت نشد.")
+            ticket.status = Ticket.Status.CLOSED
+            ticket.save(update_fields=["status", "updated_at"])
+        return Response(TicketSerializer(ticket, context={"request": request}).data)
+
+
 class InquiryView(generics.CreateAPIView):
     serializer_class = InquirySerializer
     permission_classes = [AllowAny]
     throttle_classes = [ScopedRateThrottle]
-    throttle_scope = "otp"
+    throttle_scope = "inquiry"

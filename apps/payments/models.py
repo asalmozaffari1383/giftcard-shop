@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from django.db.models import Q
 
 from apps.common.models import TimeStampedModel
 
@@ -25,7 +26,9 @@ class PaymentTransaction(TimeStampedModel):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["order", "idempotency_key"],
-                                                name="payment_order_idempotency")]
+                                                name="payment_order_idempotency"),
+                       models.CheckConstraint(condition=Q(amount_toman__gt=0),
+                                              name="payment_amount_positive")]
         indexes = [models.Index(fields=["order", "status"])]
 
 

@@ -1,6 +1,7 @@
 """Zarinpal v4 adapter: only server-to-server verification authorizes delivery."""
 
 from dataclasses import dataclass
+import secrets
 
 import requests
 from django.conf import settings
@@ -23,8 +24,12 @@ class ZarinpalGateway:
             raise GatewayError("Zarinpal merchant ID is not configured")
         host = "sandbox.zarinpal.com" if settings.ZARINPAL_SANDBOX else "api.zarinpal.com"
         self.api_base = f"https://{host}/pg/v4/payment"
-        self.start_url = ("https://sandbox.zarinpal.com" if settings.ZARINPAL_SANDBOX
-                          else "https://www.zarinpal.com") + "/pg/StartPay/"
+        self.start_url = self.payment_url("")
+
+    @staticmethod
+    def payment_url(authority, callback_url=None):
+        base = "https://sandbox.zarinpal.com" if settings.ZARINPAL_SANDBOX else "https://www.zarinpal.com"
+        return f"{base}/pg/StartPay/{authority}"
 
     def _post(self, action, payload):
         try:
@@ -44,7 +49,7 @@ class ZarinpalGateway:
         if data.get("code") != 100 or not data.get("authority"):
             raise GatewayError("Gateway rejected the payment request")
         authority = str(data["authority"])
-        return authority, self.start_url + authority
+        return authority, self.payment_url(authority)
 
     def verify(self, authority, amount_toman):
         data = self._post("verify", {"amount": amount_toman * 10, "authority": authority})
@@ -53,3 +58,26 @@ class ZarinpalGateway:
         except (TypeError, ValueError) as exc:
             raise GatewayError("Malformed verification response") from exc
         return Verification(code in (100, 101), code, str(data.get("ref_id", "")))
+
+
+class MockGateway:
+    """Local-only gateway that exercises callback verification and fulfillment."""
+
+    @staticmethod
+    def payment_url(authority, callback_url=None):
+        if not callback_url:
+            raise GatewayError("Mock callback URL is required")
+        separator = "&" if "?" in callback_url else "?"
+        return f"{callback_url}{separator}Authority={authority}&Status=OK"
+
+    def request_payment(self, amount_toman, callback_url, description):
+        authority = f"mock-{secrets.token_urlsafe(24)}"
+        return authority, self.payment_url(authority, callback_url)
+
+    def verify(self, authority, amount_toman):
+        reference = f"MOCK-{secrets.randbelow(10**10):010d}"
+        return Verification(True, 100, reference)
+
+
+def get_gateway():
+    return MockGateway() if settings.PAYMENT_GATEWAY == "mock" else ZarinpalGateway()

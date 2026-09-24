@@ -1,0 +1,21 @@
+"use client";
+import { use, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { ErrorState, LoadingState } from "@/components/states";
+import { useAuth, useCart, useToast } from "@/contexts/app-context";
+import { apiFetch, unwrapResults } from "@/lib/api";
+import { formatToman, mediaUrl, toPersianDigits } from "@/lib/format";
+import type { Paginated, Product, Review, Variant } from "@/lib/types";
+
+export default function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params); const [product, setProduct] = useState<Product | null>(null); const [reviews, setReviews] = useState<Review[]>([]); const [selected, setSelected] = useState<number | null>(null); const [quantity, setQuantity] = useState(1); const [loading, setLoading] = useState(true); const [adding, setAdding] = useState(false); const [error, setError] = useState("");
+  const { user } = useAuth(); const { addItem } = useCart(); const toast = useToast(); const router = useRouter();
+  useEffect(() => { apiFetch<Product>(`/catalog/products/${slug}/`).then(async (data) => { setProduct(data); setSelected(data.variants.find((item) => item.stock > 0)?.id || null); const reviewData = await apiFetch<Paginated<Review> | Review[]>(`/reviews/?product=${data.id}`); setReviews(unwrapResults(reviewData)); }).catch((caught) => setError(caught instanceof Error ? caught.message : "محصول یافت نشد")).finally(() => setLoading(false)); }, [slug]);
+  const variant = useMemo(() => product?.variants.find((item) => item.id === selected), [product, selected]);
+  const add = async () => { if (!user) { router.push(`/login?next=/products/${slug}`); return; } if (!variant) return; setAdding(true); try { await addItem(variant.id, quantity); } catch (caught) { toast(caught instanceof Error ? caught.message : "افزودن به سبد انجام نشد", "error"); } finally { setAdding(false); } };
+  if (loading) return <div className="container section"><LoadingState /></div>; if (error || !product) return <div className="container section"><ErrorState message={error || "محصول یافت نشد"} /></div>;
+  const image = mediaUrl(product.image);
+  return <div className="container section"><div className="detail-grid"><div className="detail-image">{image ? <Image src={image} alt={product.title_fa} width={800} height={620} unoptimized /> : "Gift Card"}</div><div className="detail-content"><div className="eyebrow">{product.brand?.title_fa || product.category.title_fa}</div><h1>{product.title_fa}</h1><div className="rating">★ {toPersianDigits(product.rating_average || "بدون امتیاز")} <small>از {toPersianDigits(product.rating_count)} نظر</small></div><p className="description">{product.description}</p><h3>انتخاب مبلغ و منطقه</h3><div className="variant-list">{product.variants.map((item: Variant) => <button className={`variant ${selected === item.id ? "selected" : ""}`} disabled={item.stock < 1} onClick={() => setSelected(item.id)} key={item.id}><span>{item.label}</span><small>{item.region} · {item.currency} · موجودی {toPersianDigits(item.stock)}</small><b>{formatToman(item.price_toman)}</b></button>)}</div>{variant ? <><div className="purchase-row"><input className="input quantity" type="number" min="1" max={Math.min(20, variant.stock)} value={quantity} onChange={(event) => setQuantity(Math.max(1, Math.min(Number(event.target.value), variant.stock, 20)))} /><button className="button" onClick={() => void add()} disabled={adding}>{adding ? "در حال افزودن..." : "افزودن به سبد"}</button></div><p className="muted">قیمت نهایی: {formatToman(variant.price_toman * quantity)}</p></> : <div className="alert error">این محصول فعلاً موجود نیست.</div>}<p><Link href="/reviews">خریدار این محصول بوده‌اید؟ ثبت نظر ←</Link></p></div></div><section className="section-sm"><div className="section-head"><div><h2>نظر خریداران</h2><p>{reviews.length ? `${reviews.length} نظر تأییدشده` : "هنوز نظری ثبت نشده است"}</p></div></div>{reviews.length > 0 && <div className="review-grid">{reviews.map((review) => <article className="panel" key={review.id}><div className="rating">{"★".repeat(review.rating)}</div><p>{review.body}</p><small className="muted">{new Date(review.created_at).toLocaleDateString("fa-IR")}</small></article>)}</div>}</section></div>;
+}

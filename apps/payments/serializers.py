@@ -5,7 +5,7 @@ from .models import PaymentRefund, PaymentTransaction
 
 class PaymentRequestSerializer(serializers.Serializer):
     order_id = serializers.UUIDField()
-    idempotency_key = serializers.CharField(min_length=8, max_length=80)
+    idempotency_key = serializers.RegexField(r"^[A-Za-z0-9._:-]{8,80}$")
 
 
 class PaymentSerializer(serializers.ModelSerializer):

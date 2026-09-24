@@ -32,8 +32,11 @@ class ProductSerializer(serializers.ModelSerializer):
     variants = VariantSerializer(many=True, read_only=True)
     brand = BrandSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
+    rating_average = serializers.DecimalField(max_digits=3, decimal_places=2, read_only=True, allow_null=True)
+    rating_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Product
         fields = ("id", "sku", "title_fa", "slug", "description", "image", "seo_title",
-                  "seo_description", "instant_delivery", "brand", "category", "variants")
+                  "seo_description", "instant_delivery", "brand", "category", "rating_average",
+                  "rating_count", "variants")

@@ -1,6 +1,8 @@
+import re
 from datetime import timedelta
 
-from django.db import transaction
+from django.contrib.auth import get_user_model
+from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -9,6 +11,22 @@ from apps.catalog.models import ProductVariant
 from apps.inventory.models import DigitalItem
 
 from .models import Cart, Coupon, Order, OrderItem
+
+IDEMPOTENCY_KEY_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{8,80}$")
+
+
+def get_or_create_cart(user, *, lock=False):
+    """Create a user's single cart safely; optionally serialize mutations by user row."""
+    if lock:
+        get_user_model().objects.select_for_update().only("pk").get(pk=user.pk)
+    try:
+        with transaction.atomic():
+            cart, _ = Cart.objects.get_or_create(user=user)
+    except IntegrityError:
+        cart = Cart.objects.get(user=user)
+    if lock:
+        cart = Cart.objects.select_for_update().get(pk=cart.pk)
+    return cart
 
 
 def _release_locked(order):
@@ -24,10 +42,15 @@ def _release_locked(order):
 
 
 @transaction.atomic
-def checkout(user, coupon_code=""):
+def checkout(user, coupon_code="", idempotency_key=""):
     """Snapshot prices, reserve exact codes and coupon atomically for 15 minutes."""
-    cart, _ = Cart.objects.get_or_create(user=user)
-    Cart.objects.select_for_update().get(pk=cart.pk)
+    idempotency_key = idempotency_key.strip()
+    if not IDEMPOTENCY_KEY_PATTERN.fullmatch(idempotency_key):
+        raise ValidationError("هدر Idempotency-Key معتبر نیست.")
+    cart = get_or_create_cart(user, lock=True)
+    existing = Order.objects.filter(user=user, idempotency_key=idempotency_key).first()
+    if existing:
+        return existing, False
     lines = list(cart.items.select_related("variant").order_by("variant_id"))
     if not lines:
         raise ValidationError("سبد خرید خالی است.")
@@ -57,6 +80,7 @@ def checkout(user, coupon_code=""):
         raise ValidationError("مبلغ نهایی باید مثبت باشد.")
     order = Order.objects.create(user=user, subtotal_toman=subtotal, discount_toman=discount,
                                  total_toman=subtotal - discount, coupon=coupon,
+                                 idempotency_key=idempotency_key,
                                  expires_at=timezone.now() + timedelta(minutes=15))
     for line, variant, codes in selected:
         OrderItem.objects.create(order=order, variant=variant, quantity=line.quantity,
@@ -66,7 +90,7 @@ def checkout(user, coupon_code=""):
     if coupon:
         Coupon.objects.filter(pk=coupon.pk).update(used_count=F("used_count") + 1)
     cart.items.all().delete()
-    return order
+    return order, True
 
 
 def dispatch_locked(order):

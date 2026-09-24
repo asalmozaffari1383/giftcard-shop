@@ -3,7 +3,8 @@ from django.db import models
 from django.db.models import Q
 
 from apps.common.models import TimeStampedModel
-from .crypto import cipher
+
+from .crypto import cipher, secret_fingerprint
 
 
 class DigitalItem(TimeStampedModel):
@@ -14,6 +15,7 @@ class DigitalItem(TimeStampedModel):
 
     variant = models.ForeignKey("catalog.ProductVariant", on_delete=models.PROTECT, related_name="digital_items")
     encrypted_payload = models.BinaryField(editable=False)
+    fingerprint = models.CharField(max_length=64, unique=True, editable=False)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.AVAILABLE)
     reserved_order = models.ForeignKey("orders.Order", null=True, blank=True, on_delete=models.PROTECT,
                                        related_name="reserved_codes")
@@ -24,12 +26,13 @@ class DigitalItem(TimeStampedModel):
         if not plaintext or not plaintext.strip():
             raise ValidationError("کد نمی‌تواند خالی باشد.")
         self.encrypted_payload = cipher().encrypt(plaintext.encode("utf-8"))
+        self.fingerprint = secret_fingerprint(plaintext)
 
     def reveal_secret(self):
         return cipher().decrypt(bytes(self.encrypted_payload)).decode("utf-8")
 
     def clean(self):
-        if not self.encrypted_payload:
+        if not self.encrypted_payload or not self.fingerprint:
             raise ValidationError("کد الزامی است.")
 
     class Meta:

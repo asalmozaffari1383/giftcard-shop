@@ -1,14 +1,14 @@
 from django.db import transaction
 from django.db.models import Prefetch
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import generics, status
 from rest_framework.response import Response
 
 from apps.inventory.models import DigitalItem
 
 from .models import Cart, CartItem, Order, OrderItem
-from .serializers import CartItemSerializer, CheckoutSerializer, OrderSerializer
-from .services import checkout
+from .serializers import CartItemSerializer, CartItemUpdateSerializer, CheckoutSerializer, OrderSerializer
+from .services import checkout, get_or_create_cart
 
 
 class CartView(generics.GenericAPIView):
@@ -17,23 +17,37 @@ class CartView(generics.GenericAPIView):
 
     @extend_schema(responses=CartItemSerializer(many=True))
     def get(self, request):
-        cart, _ = Cart.objects.get_or_create(user=request.user)
-        return Response(CartItemSerializer(cart.items.select_related("variant"), many=True).data)
+        cart = get_or_create_cart(request.user)
+        items = cart.items.select_related("variant", "variant__product")
+        return Response(CartItemSerializer(items, many=True).data)
 
     @transaction.atomic
     def post(self, request):
         serializer = CartItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        cart, _ = Cart.objects.get_or_create(user=request.user)
-        Cart.objects.select_for_update().get(pk=cart.pk)
+        cart = get_or_create_cart(request.user, lock=True)
         variant = serializer.validated_data["variant"]
         item, _ = CartItem.objects.update_or_create(
             cart=cart, variant=variant, defaults={"quantity": serializer.validated_data["quantity"]})
+        item = CartItem.objects.select_related("variant", "variant__product").get(pk=item.pk)
         return Response(CartItemSerializer(item).data, status=status.HTTP_200_OK)
 
 
 class CartItemView(generics.GenericAPIView):
     serializer_class = CartItemSerializer
+
+    @transaction.atomic
+    def patch(self, request, pk):
+        serializer = CartItemUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        item = CartItem.objects.select_for_update().select_related(
+            "variant", "variant__product").filter(pk=pk, cart__user=request.user).first()
+        if not item:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        item.quantity = serializer.validated_data["quantity"]
+        item.full_clean()
+        item.save(update_fields=["quantity"])
+        return Response(CartItemSerializer(item).data)
 
     @transaction.atomic
     @extend_schema(responses={204: None})
@@ -48,12 +62,20 @@ class CartItemView(generics.GenericAPIView):
 class CheckoutView(generics.GenericAPIView):
     serializer_class = CheckoutSerializer
 
-    @extend_schema(responses={201: OrderSerializer})
+    @extend_schema(
+        parameters=[OpenApiParameter(name="Idempotency-Key", location=OpenApiParameter.HEADER,
+                                     required=True, type=str,
+                                     description="Stable 8-80 character key for checkout retries")],
+        responses={200: OrderSerializer, 201: OrderSerializer},
+    )
     def post(self, request):
         serializer = CheckoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        order = checkout(request.user, **serializer.validated_data)
-        return Response(OrderSerializer(order, context={"request": request}).data, status=status.HTTP_201_CREATED)
+        order, created = checkout(request.user,
+                                  idempotency_key=request.headers.get("Idempotency-Key", ""),
+                                  **serializer.validated_data)
+        response_status = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        return Response(OrderSerializer(order, context={"request": request}).data, status=response_status)
 
 
 class OrderQuerysetMixin:

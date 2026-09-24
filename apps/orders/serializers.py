@@ -11,10 +11,17 @@ class CartItemSerializer(serializers.ModelSerializer):
     variant = serializers.PrimaryKeyRelatedField(queryset=ProductVariant.objects.filter(is_active=True, product__is_active=True))
     quantity = serializers.IntegerField(min_value=1, max_value=20)
     price_toman = serializers.IntegerField(source="variant.price_toman", read_only=True)
+    product_title = serializers.CharField(source="variant.product.title_fa", read_only=True)
+    product_slug = serializers.CharField(source="variant.product.slug", read_only=True)
+    variant_label = serializers.CharField(source="variant.label", read_only=True)
 
     class Meta:
         model = CartItem
-        fields = ("id", "variant", "quantity", "price_toman")
+        fields = ("id", "variant", "quantity", "price_toman", "product_title", "product_slug", "variant_label")
+
+
+class CartItemUpdateSerializer(serializers.Serializer):
+    quantity = serializers.IntegerField(min_value=1, max_value=20)
 
 
 class CheckoutSerializer(serializers.Serializer):

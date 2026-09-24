@@ -1,6 +1,6 @@
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
 
 from apps.common.models import TimeStampedModel
 
@@ -66,12 +66,18 @@ class ProductVariant(TimeStampedModel):
 
     def clean(self):
         from django.core.exceptions import ValidationError
-        if self.old_price_toman is not None and self.old_price_toman <= self.price_toman:
+        if (self.old_price_toman is not None and self.price_toman is not None and
+                self.old_price_toman <= self.price_toman):
             raise ValidationError({"old_price_toman": "قیمت پیشین باید بیشتر از قیمت فعلی باشد."})
 
     def __str__(self):
         return f"{self.product} — {self.label} ({self.region})"
 
     class Meta:
-        constraints = [models.CheckConstraint(condition=Q(price_toman__gt=0), name="variant_positive_price")]
+        constraints = [
+            models.CheckConstraint(condition=Q(price_toman__gt=0), name="variant_positive_price"),
+            models.CheckConstraint(condition=Q(old_price_toman__isnull=True) |
+                                   Q(old_price_toman__gt=F("price_toman")),
+                                   name="variant_old_price_gt_current"),
+        ]
         indexes = [models.Index(fields=["product", "is_active"])]

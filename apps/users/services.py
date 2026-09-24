@@ -32,16 +32,17 @@ def request_otp(phone):
     recent = OTPChallenge.objects.filter(phone_number=phone, created_at__gte=now - timedelta(minutes=5))
     if recent.count() >= 3:
         raise Throttled(wait=300, detail="تعداد درخواست بیش از حد مجاز است.")
-    code = f"{secrets.randbelow(1_000_000):06d}"
+    code = settings.DEVELOPMENT_OTP_CODE or f"{secrets.randbelow(1_000_000):06d}"
     OTPChallenge.objects.filter(phone_number=phone, consumed_at__isnull=True).update(consumed_at=now)
     OTPChallenge.objects.create(phone_number=phone, code_hash=_hash_code(phone, code),
                                 expires_at=now + timedelta(minutes=5))
-    transaction.on_commit(lambda: send_otp_sms.delay(phone, code))
+    if not settings.DEVELOPMENT_OTP_CODE:
+        transaction.on_commit(lambda: send_otp_sms.delay(phone, code))
 
 
-def verify_otp(phone, code):
+def verify_otp(phone_number, code):
     """Consume once; failed attempts invalidate a challenge after five tries."""
-    phone = normalize_phone(phone)
+    phone = normalize_phone(phone_number)
     with transaction.atomic():
         _lock_phone(phone)
         now = timezone.now()

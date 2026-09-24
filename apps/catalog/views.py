@@ -1,4 +1,4 @@
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Avg, Count, Prefetch, Q
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
 
@@ -33,5 +33,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         variants = ProductVariant.objects.filter(is_active=True).annotate(
             stock=Count("digital_items", filter=Q(digital_items__status=DigitalItem.Status.AVAILABLE)))
-        return Product.objects.filter(is_active=True).select_related("brand", "category").prefetch_related(
-            Prefetch("variants", queryset=variants)).order_by("-created_at", "-id")
+        return Product.objects.filter(is_active=True).select_related("brand", "category").annotate(
+            rating_average=Avg("reviews__rating", filter=Q(reviews__status="APPROVED")),
+            rating_count=Count("reviews", filter=Q(reviews__status="APPROVED"), distinct=True),
+        ).prefetch_related(Prefetch("variants", queryset=variants)).order_by("-created_at", "-id")

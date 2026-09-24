@@ -52,7 +52,7 @@ DATABASES = {"default": {
     "ENGINE": "django.db.backends.postgresql", "NAME": required("POSTGRES_DB"),
     "USER": required("POSTGRES_USER"), "PASSWORD": required("POSTGRES_PASSWORD"),
     "HOST": os.getenv("POSTGRES_HOST", "localhost"), "PORT": os.getenv("POSTGRES_PORT", "5432"),
-    "CONN_MAX_AGE": 60, "OPTIONS": {"connect_timeout": 5},
+    "CONN_MAX_AGE": 60, "CONN_HEALTH_CHECKS": True, "OPTIONS": {"connect_timeout": 5},
 }}
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 CACHES = {"default": {"BACKEND": "django_redis.cache.RedisCache", "LOCATION": REDIS_URL,
@@ -62,7 +62,12 @@ CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", REDIS_URL)
 CELERY_TASK_TIME_LIMIT = 60
 CELERY_BEAT_SCHEDULE = {
     "release-expired-reservations": {"task": "apps.orders.tasks.expire_reservations", "schedule": 60.0},
+    "expire-stale-payment-attempts": {"task": "apps.payments.tasks.expire_stale_payment_attempts",
+                                      "schedule": 60.0},
 }
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_TASK_IGNORE_RESULT = True
 REST_FRAMEWORK = {
     "URL_FORMAT_OVERRIDE": None,
     "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
@@ -72,14 +77,25 @@ REST_FRAMEWORK = {
                                 "rest_framework.filters.SearchFilter", "rest_framework.filters.OrderingFilter"),
     "DEFAULT_THROTTLE_CLASSES": ("rest_framework.throttling.AnonRateThrottle",
                                  "rest_framework.throttling.UserRateThrottle"),
-    "DEFAULT_THROTTLE_RATES": {"anon": "60/min", "user": "120/min", "otp": "10/hour"},
+    "DEFAULT_THROTTLE_RATES": {"anon": "60/min", "user": "120/min", "otp": "10/hour",
+                               "inquiry": "5/hour"},
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 SIMPLE_JWT = {"ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
               "REFRESH_TOKEN_LIFETIME": timedelta(days=7), "ROTATE_REFRESH_TOKENS": True,
               "BLACKLIST_AFTER_ROTATION": True,
               "SIGNING_KEY": os.getenv("JWT_SIGNING_KEY", SECRET_KEY)}
-SPECTACULAR_SETTINGS = {"TITLE": "Digital Marketplace API", "VERSION": "1.0.0"}
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Digital Marketplace API",
+    "VERSION": "1.0.0",
+    "ENUM_NAME_OVERRIDES": {
+        "InventoryStatusEnum": "apps.inventory.models.DigitalItem.Status",
+        "OrderStatusEnum": "apps.orders.models.Order.Status",
+        "PaymentStatusEnum": "apps.payments.models.PaymentTransaction.Status",
+        "ReviewStatusEnum": "apps.reviews.models.Review.Status",
+        "TicketStatusEnum": "apps.support.models.Ticket.Status",
+    },
+}
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -98,6 +114,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_SSL_REDIRECT = not DEBUG
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if os.getenv("TRUST_PROXY") == "true" else None
 SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
@@ -105,6 +124,23 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv("SECURE_HSTS_INCLUDE_SUBDOMAINS", "fa
 SECURE_HSTS_PRELOAD = os.getenv("SECURE_HSTS_PRELOAD", "false").lower() == "true"
 X_FRAME_OPTIONS = "DENY"
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2_500_000
+
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {"format": "{asctime} {levelname} {name} {message}", "style": "{"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "standard"},
+    },
+    "root": {"handlers": ["console"], "level": LOG_LEVEL},
+    "loggers": {
+        "django.request": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+        "apps": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+    },
+}
 
 INVENTORY_FERNET_KEYS = [key for key in os.getenv("INVENTORY_FERNET_KEYS", "").split(",") if key]
 if not INVENTORY_FERNET_KEYS:
@@ -114,7 +150,11 @@ try:
         Fernet(key.encode())
 except (ValueError, TypeError) as exc:
     raise ImproperlyConfigured("INVENTORY_FERNET_KEYS contains an invalid Fernet key") from exc
+INVENTORY_FINGERPRINT_KEY = os.getenv("INVENTORY_FINGERPRINT_KEY", SECRET_KEY if DEBUG else "")
+if len(INVENTORY_FINGERPRINT_KEY) < 32:
+    raise ImproperlyConfigured("INVENTORY_FINGERPRINT_KEY must contain at least 32 characters")
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://localhost:8000" if DEBUG else "").rstrip("/")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000" if DEBUG else "").rstrip("/")
 if not PUBLIC_BASE_URL:
     raise ImproperlyConfigured("PUBLIC_BASE_URL is required")
 if not DEBUG and not PUBLIC_BASE_URL.startswith("https://"):
@@ -122,6 +162,15 @@ if not DEBUG and not PUBLIC_BASE_URL.startswith("https://"):
 SMS_API_URL = os.getenv("SMS_API_URL", "")
 SMS_API_KEY = os.getenv("SMS_API_KEY", "")
 SMS_TEMPLATE_ID = os.getenv("SMS_TEMPLATE_ID", "")
+DEVELOPMENT_OTP_CODE = os.getenv("DEVELOPMENT_OTP_CODE", "") if DEBUG else ""
+if DEVELOPMENT_OTP_CODE and (len(DEVELOPMENT_OTP_CODE) != 6 or not DEVELOPMENT_OTP_CODE.isascii() or
+                             not DEVELOPMENT_OTP_CODE.isdigit()):
+    raise ImproperlyConfigured("DEVELOPMENT_OTP_CODE must contain exactly six ASCII digits")
+PAYMENT_GATEWAY = os.getenv("PAYMENT_GATEWAY", "zarinpal")
+if PAYMENT_GATEWAY not in {"zarinpal", "mock"}:
+    raise ImproperlyConfigured("PAYMENT_GATEWAY must be zarinpal or mock")
+if PAYMENT_GATEWAY == "mock" and not DEBUG:
+    raise ImproperlyConfigured("Mock payments are allowed only when DEBUG=true")
 ZARINPAL_MERCHANT_ID = os.getenv("ZARINPAL_MERCHANT_ID", "")
 ZARINPAL_SANDBOX = os.getenv("ZARINPAL_SANDBOX", "false").lower() == "true"
 TOROB_FEED_KEY = os.getenv("TOROB_FEED_KEY", "")
