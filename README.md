@@ -29,6 +29,8 @@ docker compose exec web python manage.py seed_demo_data
 
 For standalone frontend development, copy `frontend/.env.example` to `frontend/.env.local`, then run `npm install` and `npm run dev` inside `frontend/`. See `FRONTEND_TASKS.md` for the implementation roadmap and production follow-ups.
 
+Production placeholders, the separate Docker stack, final credential handoff, HTTPS routing, backup and restore steps are documented in `PRODUCTION_READINESS.md`. Real host, SMS and gateway values are intentionally deferred to the final deployment stage and must only be stored in the ignored `.env.production` file.
+
 ## Backend
 
 Django 5.2 / DRF backend with PostgreSQL row locks, encrypted digital stock, mobile OTP, JWT, and Zarinpal payments. All persisted prices are **integer Tomans**; gateway requests use `IRR` with `amount_toman * 10`. Timestamps are timezone-aware Gregorian UTC in storage/API, with an additional Jalali display string in order responses.

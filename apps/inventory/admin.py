@@ -1,6 +1,8 @@
 from django import forms
 from django.contrib import admin
 
+from apps.common.admin import AdminRoleRequiredMixin
+
 from .models import DigitalItem
 
 
@@ -31,7 +33,7 @@ class DigitalItemForm(forms.ModelForm):
 
 
 @admin.register(DigitalItem)
-class DigitalItemAdmin(admin.ModelAdmin):
+class DigitalItemAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
     form = DigitalItemForm
     list_display = ("id", "variant", "status", "masked_secret", "created_at")
     list_filter = ("status", "variant__region")

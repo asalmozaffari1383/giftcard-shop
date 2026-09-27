@@ -1,10 +1,18 @@
 PYTHON ?= python
 
-.PHONY: check test test-fast schema migrate worker beat lint
+.PHONY: check production-check production-check-live test test-fast schema migrate worker beat lint
 
 check:
 	$(PYTHON) manage.py check
 	$(PYTHON) manage.py makemigrations --check --dry-run
+
+production-check:
+	$(PYTHON) manage.py check --deploy
+	$(PYTHON) manage.py production_check
+
+production-check-live:
+	$(PYTHON) manage.py check --deploy
+	$(PYTHON) manage.py production_check --live
 
 test:
 	$(PYTHON) manage.py test

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.exceptions import APIException, ValidationError
@@ -5,8 +6,6 @@ from rest_framework.exceptions import APIException, ValidationError
 from apps.inventory.models import DigitalItem
 from apps.orders.models import Order
 from apps.orders.services import _release_locked, dispatch_locked
-
-from django.conf import settings
 
 from .gateways import GatewayError, MockGateway, ZarinpalGateway
 from .models import PaymentEvent, PaymentRefund, PaymentTransaction
@@ -140,6 +139,44 @@ def record_external_refund(payment_id, external_reference, admin):
         order.save(update_fields=["status", "updated_at"])
     PaymentEvent.objects.create(payment=payment, event="REFUND_RECORDED")
     return refund
+
+
+@transaction.atomic
+def fulfill_reconciliation(payment_id):
+    """Fulfill a verified reconciliation payment only while its exact reservations remain intact."""
+    payment_info = PaymentTransaction.objects.filter(pk=payment_id).values("order_id").first()
+    if not payment_info:
+        raise ValidationError("تراکنش یافت نشد.")
+    order = Order.objects.select_for_update().get(pk=payment_info["order_id"])
+    payment = PaymentTransaction.objects.select_for_update().get(pk=payment_id)
+    if payment.status != PaymentTransaction.Status.RECONCILIATION:
+        raise ValidationError("تراکنش در وضعیت بررسی دستی نیست.")
+    if not payment.reference_id or not payment.verified_at:
+        raise ValidationError("تأیید بانکی تراکنش کامل نیست.")
+    if PaymentRefund.objects.filter(payment=payment).exists():
+        raise ValidationError("وجه این تراکنش قبلاً مسترد شده است.")
+    if order.status != Order.Status.PENDING:
+        raise ValidationError(
+            "سفارش دیگر قابل تحویل نیست و باید برای استرداد بررسی شود."
+        )
+    if order.payments.exclude(pk=payment.pk).filter(status=PaymentTransaction.Status.VERIFIED).exists():
+        raise ValidationError("سفارش قبلاً با تراکنش دیگری تحویل شده است.")
+    for item in order.items.select_related("variant").order_by("pk"):
+        reserved_ids = list(DigitalItem.objects.select_for_update().filter(
+            reserved_order=order, variant=item.variant, status=DigitalItem.Status.RESERVED,
+        ).order_by("pk").values_list("pk", flat=True))
+        if len(reserved_ids) != item.quantity:
+            raise ValidationError(
+                "موجودی رزروشده کامل نیست؛ تراکنش باید مسترد شود."
+            )
+    order.status = Order.Status.PROCESSING
+    order.paid_at = payment.verified_at
+    order.save(update_fields=["status", "paid_at", "updated_at"])
+    dispatch_locked(order)
+    payment.status = PaymentTransaction.Status.VERIFIED
+    payment.save(update_fields=["status", "updated_at"])
+    PaymentEvent.objects.create(payment=payment, event="MANUAL_RECONCILIATION_FULFILLED")
+    return payment
 
 
 @transaction.atomic

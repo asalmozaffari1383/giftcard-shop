@@ -1,10 +1,12 @@
 from django.contrib import admin
 
+from apps.common.admin import AdminRoleRequiredMixin
+
 from .models import PaymentEvent, PaymentRefund, PaymentTransaction
 
 
 @admin.register(PaymentTransaction)
-class PaymentAdmin(admin.ModelAdmin):
+class PaymentAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
     list_display = ("id", "order", "gateway", "amount_toman", "status", "created_at")
     list_filter = ("gateway", "status")
     search_fields = ("id", "order__id", "reference_id")
@@ -16,7 +18,7 @@ class PaymentAdmin(admin.ModelAdmin):
 
 
 @admin.register(PaymentEvent)
-class PaymentEventAdmin(admin.ModelAdmin):
+class PaymentEventAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
     list_display = ("payment", "event", "gateway_code", "created_at")
     readonly_fields = ("payment", "event", "gateway_code", "created_at")
     search_fields = ("payment__id", "event")
@@ -29,7 +31,7 @@ class PaymentEventAdmin(admin.ModelAdmin):
 
 
 @admin.register(PaymentRefund)
-class PaymentRefundAdmin(admin.ModelAdmin):
+class PaymentRefundAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
     list_display = ("payment", "external_reference", "recorded_by", "created_at")
     readonly_fields = ("payment", "external_reference", "recorded_by", "created_at")
 

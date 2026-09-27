@@ -10,7 +10,13 @@ from apps.catalog.models import Brand, Category, Product, ProductVariant
 from apps.inventory.models import DigitalItem
 from apps.payments.gateways import Verification
 from apps.payments.models import PaymentTransaction
-from apps.payments.services import fail_stale_payment, initiate_payment, record_external_refund, verify_callback
+from apps.payments.services import (
+    fail_stale_payment,
+    fulfill_reconciliation,
+    initiate_payment,
+    record_external_refund,
+    verify_callback,
+)
 from apps.users.models import User
 
 from .models import Cart, CartItem, Order
@@ -106,6 +112,12 @@ class CheckoutAndFulfillmentTests(TestCase):
         result = verify_callback(payment.pk, "authority-2", "OK")
         self.assertEqual(result.status, PaymentTransaction.Status.RECONCILIATION)
         self.assertFalse(DigitalItem.objects.filter(status=DigitalItem.Status.SOLD).exists())
+        fulfill_reconciliation(payment.pk)
+        order.refresh_from_db()
+        payment.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.COMPLETED)
+        self.assertEqual(payment.status, PaymentTransaction.Status.VERIFIED)
+        self.assertEqual(DigitalItem.objects.filter(status=DigitalItem.Status.SOLD).count(), 2)
 
     @patch("apps.payments.services.ZarinpalGateway.verify", return_value=Verification(True, 100, "ref-3"))
     def test_refunding_duplicate_charge_keeps_fulfilled_order_completed(self, verify):

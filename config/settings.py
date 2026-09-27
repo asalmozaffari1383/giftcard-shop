@@ -31,7 +31,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
     "rest_framework", "rest_framework_simplejwt.token_blacklist", "corsheaders",
     "django_filters", "drf_spectacular",
-    "apps.users", "apps.catalog", "apps.inventory", "apps.orders",
+    "apps.common", "apps.users", "apps.catalog", "apps.inventory", "apps.orders",
     "apps.payments", "apps.reviews", "apps.support", "apps.integrations",
 ]
 MIDDLEWARE = [
@@ -112,6 +112,8 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True

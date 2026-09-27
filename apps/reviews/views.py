@@ -1,9 +1,9 @@
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from rest_framework import mixins, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.catalog.models import Product

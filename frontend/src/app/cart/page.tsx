@@ -1,27 +1,15 @@
 "use client";
-
 import Link from "next/link";
 import { useAuth, useCart } from "@/contexts/app-context";
 import { EmptyState, LoadingState } from "@/components/states";
-import { formatToman } from "@/lib/format";
+import { Icon, PageIntro, StatusPill } from "@/components/ui";
+import { formatToman, toPersianDigits } from "@/lib/format";
 
 export default function CartPage() {
-  const { user, loading: authLoading } = useAuth();
-  const { items, total, loading, updateItem, removeItem } = useCart();
-  if (authLoading) return <div className="container section"><LoadingState /></div>;
-  if (!user) return <div className="container section"><EmptyState title="برای مشاهده سبد وارد شوید" text="سبد خرید شما پس از ورود با سرور همگام می‌شود." href="/login?next=/cart" action="ورود با موبایل" /></div>;
-  if (loading) return <div className="container section"><LoadingState /></div>;
-  if (!items.length) return <div className="container section"><EmptyState title="سبد خرید خالی است" text="یک محصول دیجیتال انتخاب کنید." href="/products" action="رفتن به فروشگاه" /></div>;
-
-  return <div className="container section">
-    <div className="section-head"><div><h1>سبد خرید</h1><p>موجودی نهایی هنگام ثبت سفارش کنترل می‌شود.</p></div></div>
-    <div className="cart-layout"><div className="cart-items">{items.map((item) => <div className="cart-item" key={item.id}>
-      <div><h3><Link href={`/products/${item.product_slug}`}>{item.product_title}</Link></h3><p>{item.variant_label}</p></div>
-      <div className="cart-quantity"><button onClick={() => item.quantity > 1 && void updateItem(item, item.quantity - 1)} disabled={item.quantity <= 1}>−</button><span>{item.quantity}</span><button onClick={() => item.quantity < 20 && void updateItem(item, item.quantity + 1)} disabled={item.quantity >= 20}>+</button></div>
-      <strong>{formatToman(item.price_toman * item.quantity)}</strong>
-      <button className="button danger small" onClick={() => void removeItem(item)}>حذف</button>
-    </div>)}</div>
-      <aside className="panel summary"><h2>خلاصه سبد</h2><div className="summary-row"><span>جمع محصولات</span><span>{formatToman(total)}</span></div><div className="summary-row total"><span>قابل پرداخت</span><span>{formatToman(total)}</span></div><Link className="button full" href="/checkout">ادامه و پرداخت</Link></aside>
-    </div>
-  </div>;
+  const { user, loading: authLoading } = useAuth(); const { items, total, loading, updateItem, removeItem } = useCart();
+  if (authLoading) return <div className="container page-shell"><LoadingState/></div>;
+  if (!user) return <div className="container page-shell"><EmptyState title="برای مشاهده سبد وارد شوید" text="سبد خرید شما بعد از ورود با سرور همگام می‌شود." href="/login?next=/cart" action="ورود با موبایل"/></div>;
+  if (loading) return <div className="container page-shell"><LoadingState text="در حال همگام‌سازی سبد..."/></div>;
+  if (!items.length) return <div className="container page-shell"><EmptyState title="سبد خریدت خالی است" text="یک محصول دیجیتال انتخاب کن تا اینجا نمایش داده شود." href="/products" action="مشاهده فروشگاه"/></div>;
+  return <div className="container page-shell"><PageIntro eyebrow="سبد خرید" title="مرور انتخاب‌ها" description="تعداد و مبلغ محصولات را بررسی کن؛ موجودی نهایی هنگام ثبت سفارش دوباره کنترل می‌شود."/><div className="checkout-steps"><span className="active"><b>۱</b> سبد خرید</span><i/><span><b>۲</b> ثبت سفارش</span><i/><span><b>۳</b> دریافت کد</span></div><div className="cart-layout"><section className="cart-items">{items.map((item) => <article className="cart-item" key={item.id}><div className="cart-thumb"><span>{item.product_title.slice(0,1)}</span></div><div className="cart-info"><StatusPill tone="success">موجود</StatusPill><h2><Link href={`/products/${item.product_slug}`}>{item.product_title}</Link></h2><p>{item.variant_label}</p><button className="remove-link" onClick={() => void removeItem(item)}><Icon name="x" size={15}/> حذف از سبد</button></div><div className="cart-side"><strong>{formatToman(item.price_toman * item.quantity)}</strong><small>هر عدد {formatToman(item.price_toman)}</small><div className="quantity-control compact"><button onClick={() => item.quantity > 1 && void updateItem(item, item.quantity - 1)} disabled={item.quantity <= 1}><Icon name="minus" size={15}/></button><span>{toPersianDigits(item.quantity)}</span><button onClick={() => item.quantity < 20 && void updateItem(item, item.quantity + 1)} disabled={item.quantity >= 20}><Icon name="plus" size={15}/></button></div></div></article>)}</section><aside className="order-summary"><h2>خلاصه سفارش</h2><div className="summary-row"><span>تعداد کالا</span><b>{toPersianDigits(items.reduce((sum,item) => sum + item.quantity, 0))} عدد</b></div><div className="summary-row"><span>جمع محصولات</span><b>{formatToman(total)}</b></div><div className="summary-row"><span>هزینه ارسال</span><b className="success-text">رایگان</b></div><div className="summary-total"><span>مبلغ قابل پرداخت</span><strong>{formatToman(total)}</strong></div><Link className="button primary full large" href="/checkout">ادامه فرایند خرید <Icon name="arrow-left"/></Link><div className="summary-security"><Icon name="shield"/><span>موجودی و مبلغ پیش از ایجاد سفارش دوباره اعتبارسنجی می‌شوند.</span></div></aside></div></div>;
 }

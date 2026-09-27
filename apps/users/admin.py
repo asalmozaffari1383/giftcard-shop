@@ -2,6 +2,8 @@ from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
+from apps.common.admin import AdminRoleRequiredMixin
+
 from .models import OTPChallenge, Profile, User
 
 
@@ -27,7 +29,7 @@ class UserCreationForm(forms.ModelForm):
 
 
 @admin.register(User)
-class UserAdmin(BaseUserAdmin):
+class UserAdmin(AdminRoleRequiredMixin, BaseUserAdmin):
     add_form = UserCreationForm
     list_display = ("phone_number", "is_verified", "is_staff", "is_support", "date_joined")
     list_filter = ("is_verified", "is_staff", "is_support", "is_active")
@@ -40,12 +42,12 @@ class UserAdmin(BaseUserAdmin):
 
 
 @admin.register(Profile)
-class ProfileAdmin(admin.ModelAdmin):
+class ProfileAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
     search_fields = ("user__phone_number", "first_name", "last_name")
 
 
 @admin.register(OTPChallenge)
-class OTPAdmin(admin.ModelAdmin):
+class OTPAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
     list_display = ("phone_number", "created_at", "expires_at", "attempts", "consumed_at")
     readonly_fields = ("phone_number", "code_hash", "created_at", "expires_at", "attempts", "consumed_at")
     search_fields = ("phone_number",)
