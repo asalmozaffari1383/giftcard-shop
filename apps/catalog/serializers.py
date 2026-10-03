@@ -1,3 +1,6 @@
+from urllib.parse import urljoin
+
+from django.conf import settings
 from django.urls import reverse
 from rest_framework import serializers
 
@@ -45,8 +48,6 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def get_image(self, obj):
         if obj.image:
-            request = self.context.get("request")
-            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
-        request = self.context.get("request")
+            return urljoin(f"{settings.PUBLIC_BASE_URL}/", obj.image.url.lstrip("/"))
         artwork_path = reverse("product-artwork", kwargs={"slug": obj.slug})
-        return request.build_absolute_uri(artwork_path) if request else artwork_path
+        return urljoin(f"{settings.PUBLIC_BASE_URL}/", artwork_path.lstrip("/"))

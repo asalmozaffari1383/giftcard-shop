@@ -1,9 +1,10 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .models import Brand, Category, Product
 
 
+@override_settings(PUBLIC_BASE_URL="https://api.example.com")
 class ProductArtworkTests(TestCase):
     def setUp(self):
         category = Category.objects.create(title_fa="گیفت کارت", slug="gift-card")
@@ -24,4 +25,5 @@ class ProductArtworkTests(TestCase):
         response = self.client.get(reverse("product-detail", kwargs={"slug": self.product.slug}))
 
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["image"].startswith("https://api.example.com/"))
         self.assertIn("/artwork/", response.json()["image"])

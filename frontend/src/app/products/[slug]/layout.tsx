@@ -1,21 +1,32 @@
 import type { Metadata } from "next";
-import type { Product } from "@/lib/types";
+import { getPublicProduct } from "@/lib/server-api";
+
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const base = (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
-  try {
-    const response = await fetch(`${base}/catalog/products/${slug}/`, { next: { revalidate: 300 } });
-    if (!response.ok) return { title: "محصول" };
-    const product = await response.json() as Product;
-    return {
-      title: product.seo_title || product.title_fa,
-      description: product.seo_description || product.description.slice(0, 160),
-      openGraph: { title: product.seo_title || product.title_fa, description: product.seo_description },
-    };
-  } catch {
-    return { title: "محصول" };
-  }
+  const product = await getPublicProduct(slug).catch(() => null);
+  if (!product) return { title: "محصول یافت نشد", robots: { index: false, follow: false } };
+  const canonical = `${siteUrl}/products/${encodeURIComponent(product.slug)}`;
+  const title = product.seo_title || product.title_fa;
+  const description = product.seo_description || product.description.slice(0, 160);
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      type: "website",
+      locale: "fa_IR",
+      url: canonical,
+      title,
+      description,
+      images: product.image ? [{ url: product.image, alt: product.title_fa }] : undefined,
+    },
+  };
 }
 
-export default function ProductLayout({ children }: { children: React.ReactNode }) { return children; }
+export default function ProductLayout({ children }: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return children;
+}

@@ -1,4 +1,5 @@
 import hmac
+from urllib.parse import quote, urlencode
 from xml.etree.ElementTree import Element, SubElement, tostring
 
 from django.conf import settings
@@ -16,6 +17,8 @@ from apps.inventory.models import DigitalItem
 
 class FeedQuerySerializer(serializers.Serializer):
     page = serializers.IntegerField(min_value=1, default=1)
+    page_size = serializers.IntegerField(min_value=1, max_value=500, default=100)
+    key = serializers.CharField(required=False, write_only=True)
 
 
 class FeedProductSerializer(serializers.Serializer):
@@ -36,30 +39,45 @@ class TorobFeedView(generics.GenericAPIView):
     queryset = ProductVariant.objects.none()
     pagination_size = 100
 
+    @staticmethod
+    def _is_authorized(request):
+        supplied = request.headers.get("X-Feed-Key", "") or request.query_params.get("key", "")
+        return bool(settings.TOROB_FEED_KEY and hmac.compare_digest(supplied, settings.TOROB_FEED_KEY))
+
     @extend_schema(parameters=[FeedQuerySerializer], responses=FeedProductSerializer(many=True))
     def get(self, request):
-        supplied = request.headers.get("X-Feed-Key", "")
-        if not settings.TOROB_FEED_KEY or not hmac.compare_digest(supplied, settings.TOROB_FEED_KEY):
+        if not self._is_authorized(request):
             raise PermissionDenied("کلید فید نامعتبر است.")
         query = FeedQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
         page = query.validated_data["page"]
-        variants = ProductVariant.objects.filter(is_active=True, product__is_active=True).select_related(
+        page_size = query.validated_data["page_size"]
+        variants = ProductVariant.objects.filter(
+            is_active=True, product__is_active=True, price_toman__gt=0,
+        ).select_related(
             "product").annotate(stock=Count("digital_items", filter=Q(
                 digital_items__status=DigitalItem.Status.AVAILABLE))).order_by("-created_at", "-pk")
-        batch = list(variants[(page - 1) * self.pagination_size:page * self.pagination_size])
+        total = variants.count()
+        batch = list(variants[(page - 1) * page_size:page * page_size])
+        campaign_query = urlencode({"utm_source": "torob", "utm_medium": "cpc", "utm_campaign": "products"})
         data = [{"page_unique_id": variant.sku, "product_id": variant.sku,
                  "title": f"{variant.product.title_fa} - {variant.label} ({variant.region})",
                  "price": variant.price_toman, "availability": "instock" if variant.stock else "outofstock",
                  "old_price": variant.old_price_toman,
-                 "page_url": (f"{settings.PUBLIC_BASE_URL}/api/v1/catalog/products/"
-                              f"{variant.product.slug}/?variant={variant.pk}")} for variant in batch]
+                 "page_url": (f"{settings.FRONTEND_URL}/products/{quote(variant.product.slug)}/"
+                              f"?variant={variant.pk}&{campaign_query}")} for variant in batch]
         if request.query_params.get("format") == "xml":
             root = Element("products")
             for product in data:
                 element = SubElement(root, "product")
                 for key, value in product.items():
                     SubElement(element, key).text = "" if value is None else str(value)
-            return HttpResponse(tostring(root, encoding="utf-8", xml_declaration=True),
-                                content_type="application/xml; charset=utf-8")
-        return Response(data)
+            response = HttpResponse(tostring(root, encoding="utf-8", xml_declaration=True),
+                                    content_type="application/xml; charset=utf-8")
+        else:
+            response = Response(data)
+        response["Cache-Control"] = "private, no-store"
+        response["X-Total-Count"] = str(total)
+        response["X-Page"] = str(page)
+        response["X-Page-Size"] = str(page_size)
+        return response

@@ -1,10 +1,12 @@
 import json
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from apps.catalog.models import Product, ProductVariant
+from apps.inventory.models import DigitalItem
 
 from .catalog import CandidateData, normalize_title, parse_uploaded_catalog, publish_candidate, upsert_candidates
 from .models import CatalogCandidate, CatalogSource
@@ -111,3 +113,45 @@ class CatalogImportTests(TestCase):
         self.assertTrue(variant.is_active)
         self.assertIsNone(variant.old_price_toman)
         self.assertEqual(variant.digital_items.count(), 0)
+
+
+@override_settings(TOROB_FEED_KEY="feed-secret", FRONTEND_URL="https://shop.example.com")
+class TorobFeedTests(TestCase):
+    def setUp(self):
+        source = CatalogSource.objects.create(
+            name="منبع", slug="feed-source", base_url="https://example.com",
+            kind=CatalogSource.Kind.CURATED,
+        )
+        candidate = CatalogCandidate.objects.create(
+            source=source, external_id="steam", source_url="https://example.com/steam",
+            title="گیفت کارت استیم", normalized_title="گیفت کارت استیم",
+            source_price=900_000, source_currency="IRT",
+        )
+        self.product = publish_candidate(candidate, activate=True)
+        self.variant = self.product.variants.get()
+        self.client = APIClient()
+
+    def test_feed_accepts_query_key_and_links_to_storefront(self):
+        response = self.client.get("/api/v1/integrations/torob/products/?key=feed-secret&page_size=1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["X-Total-Count"], "1")
+        self.assertEqual(response.data[0]["availability"], "outofstock")
+        self.assertIn("https://shop.example.com/products/", response.data[0]["page_url"])
+        self.assertIn("utm_source=torob", response.data[0]["page_url"])
+        self.assertNotIn("/api/v1/catalog/", response.data[0]["page_url"])
+
+    def test_feed_reports_only_real_available_inventory(self):
+        item = DigitalItem(variant=self.variant)
+        item.set_secret("test-code")
+        item.save()
+
+        response = self.client.get("/api/v1/integrations/torob/products/", HTTP_X_FEED_KEY="feed-secret")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]["availability"], "instock")
+
+    def test_feed_rejects_missing_key(self):
+        response = self.client.get("/api/v1/integrations/torob/products/")
+
+        self.assertEqual(response.status_code, 403)

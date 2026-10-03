@@ -56,3 +56,23 @@ jobs:
       - run: python manage.py migrate --noinput
       - run: python manage.py test --verbosity 1
       - run: python manage.py spectacular --validate --file /tmp/schema.yaml
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+          NEXT_PUBLIC_SITE_URL: https://shop.example.com
+      - run: npm audit --omit=dev

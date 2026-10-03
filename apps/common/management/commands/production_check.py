@@ -29,6 +29,8 @@ def collect_production_issues(*, live=False):
         errors.append("JWT_SIGNING_KEY must be strong and independent from SECRET_KEY.")
     if not _https(settings.PUBLIC_BASE_URL) or not _https(settings.FRONTEND_URL):
         errors.append("PUBLIC_BASE_URL and FRONTEND_URL must use HTTPS.")
+    if os.getenv("NEXT_PUBLIC_SITE_URL", "").rstrip("/") != settings.FRONTEND_URL:
+        errors.append("NEXT_PUBLIC_SITE_URL must exactly match FRONTEND_URL.")
     if not settings.ALLOWED_HOSTS or any(host in {"*", "localhost", "127.0.0.1"} for host in settings.ALLOWED_HOSTS):
         errors.append("ALLOWED_HOSTS must contain only final deployment hosts.")
     if any(not _https(origin) for origin in settings.CSRF_TRUSTED_ORIGINS):
@@ -65,8 +67,22 @@ def collect_production_issues(*, live=False):
         warnings.append("HSTS includeSubDomains is disabled; enable only after every subdomain supports HTTPS.")
     if not settings.SECURE_HSTS_PRELOAD:
         warnings.append("HSTS preload is disabled; enable only after the domain is permanently ready.")
+    business_fields = {
+        "NEXT_PUBLIC_BUSINESS_NAME": os.getenv("NEXT_PUBLIC_BUSINESS_NAME", ""),
+        "NEXT_PUBLIC_SUPPORT_PHONE": os.getenv("NEXT_PUBLIC_SUPPORT_PHONE", ""),
+        "NEXT_PUBLIC_SUPPORT_HOURS": os.getenv("NEXT_PUBLIC_SUPPORT_HOURS", ""),
+        "NEXT_PUBLIC_BUSINESS_ADDRESS": os.getenv("NEXT_PUBLIC_BUSINESS_ADDRESS", ""),
+    }
+    missing_business = [name for name, value in business_fields.items() if _placeholder(value)]
+    if missing_business:
+        errors.append(f"Public legal business fields are incomplete: {', '.join(missing_business)}.")
+    enamad_fields = (os.getenv("NEXT_PUBLIC_ENAMAD_URL", ""), os.getenv("NEXT_PUBLIC_ENAMAD_LOGO_URL", ""))
+    if any(_placeholder(value) for value in enamad_fields):
+        message = "Enamad verification and logo URLs are not configured."
+        (errors if live else warnings).append(message)
     if _placeholder(settings.TOROB_FEED_KEY):
-        warnings.append("TOROB_FEED_KEY is not configured; the partner feed will remain unavailable.")
+        message = "TOROB_FEED_KEY is not configured; the partner feed will remain unavailable."
+        (errors if live else warnings).append(message)
     return errors, warnings
 
 

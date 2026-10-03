@@ -1,31 +1,42 @@
-"use client";
-import { use, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { ErrorState, LoadingState } from "@/components/states";
-import { Icon, StatusPill, TrustItem } from "@/components/ui";
-import { useAuth, useCart, useToast } from "@/contexts/app-context";
-import { apiFetch, unwrapResults } from "@/lib/api";
-import { formatToman, mediaUrl, toPersianDigits } from "@/lib/format";
-import type { Paginated, Product, Review, Variant } from "@/lib/types";
+import { notFound } from "next/navigation";
+import { ProductDetailClient } from "@/components/product-detail-client";
+import { getPublicProduct } from "@/lib/server-api";
 
-export default function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params); const [product, setProduct] = useState<Product | null>(null); const [reviews, setReviews] = useState<Review[]>([]); const [selected, setSelected] = useState<number | null>(null); const [quantity, setQuantity] = useState(1); const [loading, setLoading] = useState(true); const [adding, setAdding] = useState(false); const [error, setError] = useState("");
-  const { user } = useAuth(); const { addItem } = useCart(); const toast = useToast(); const router = useRouter();
-  useEffect(() => { apiFetch<Product>(`/catalog/products/${slug}/`).then(async (data) => { setProduct(data); setSelected(data.variants.find((item) => item.stock > 0)?.id || null); const reviewData = await apiFetch<Paginated<Review> | Review[]>(`/reviews/?product=${data.id}`); setReviews(unwrapResults(reviewData)); }).catch((caught) => setError(caught instanceof Error ? caught.message : "محصول یافت نشد")).finally(() => setLoading(false)); }, [slug]);
-  const variant = useMemo(() => product?.variants.find((item) => item.id === selected), [product, selected]);
-  const add = async () => { if (!user) { router.push(`/login?next=/products/${slug}`); return; } if (!variant) return; setAdding(true); try { await addItem(variant.id, quantity); router.push("/cart"); } catch (caught) { toast(caught instanceof Error ? caught.message : "افزودن به سبد انجام نشد", "error"); } finally { setAdding(false); } };
-  if (loading) return <div className="container page-shell"><LoadingState text="در حال آماده‌سازی اطلاعات محصول..."/></div>; if (error || !product) return <div className="container page-shell"><ErrorState message={error || "محصول یافت نشد"}/></div>;
-  const image = mediaUrl(product.image); const availableCount = product.variants.filter((item) => item.stock > 0).length;
-  return <div className="container page-shell"><nav className="breadcrumbs"><Link href="/">خانه</Link><Icon name="chevron-left" size={14}/><Link href="/products">فروشگاه</Link><Icon name="chevron-left" size={14}/><span>{product.title_fa}</span></nav>
-    <section className="product-detail-grid"><div className="product-gallery"><div className="detail-image">{image ? <Image src={image} alt={product.title_fa} width={800} height={620} priority unoptimized/> : <div className="detail-placeholder"><span>{product.brand?.title_fa?.slice(0,1) || "G"}</span><b>{product.brand?.title_fa || "Gift Card"}</b><small>DIGITAL PRODUCT</small></div>}</div><div className="gallery-note"><Icon name="shield"/><span>کدها به‌صورت رمزنگاری‌شده نگهداری و فقط بعد از خرید نمایش داده می‌شوند.</span></div></div>
-      <div className="product-buy-box"><div className="product-detail-head"><div><span className="eyebrow">{product.brand?.title_fa || product.category.title_fa}</span><h1>{product.title_fa}</h1></div>{product.instant_delivery && <StatusPill tone="success"><Icon name="clock" size={14}/> تحویل آنی</StatusPill>}</div><div className="detail-rating"><span><Icon name="star" size={17}/> {toPersianDigits(product.rating_average || "—")}</span><small>{toPersianDigits(product.rating_count)} نظر خریدار</small><i/><small>{toPersianDigits(availableCount)} انتخاب موجود</small></div><p className="description">{product.description}</p>
-        <div className="variant-heading"><div><h2>مبلغ و منطقه را انتخاب کن</h2><p>گزینه‌های ناموجود غیرفعال شده‌اند.</p></div>{variant && <span className="stock-confirm"><Icon name="check" size={15}/> موجود در انبار</span>}</div>
-        <div className="variant-list">{product.variants.map((item: Variant) => <button className={`variant ${selected === item.id ? "selected" : ""}`} disabled={item.stock < 1} onClick={() => { setSelected(item.id); setQuantity(1); }} key={item.id}><div><span>{item.label}</span><small>{item.region} · {item.currency}</small></div><div><b>{formatToman(item.price_toman)}</b><small>{item.stock > 0 ? `${toPersianDigits(item.stock)} عدد` : "ناموجود"}</small></div>{selected === item.id && <i><Icon name="check" size={14}/></i>}</button>)}</div>
-        {variant ? <div className="purchase-panel"><div className="purchase-price"><small>مبلغ قابل پرداخت</small>{variant.old_price_toman && <del>{formatToman(variant.old_price_toman * quantity)}</del>}<strong>{formatToman(variant.price_toman * quantity)}</strong></div><div className="quantity-control" aria-label="انتخاب تعداد"><button onClick={() => setQuantity((value) => Math.max(1, value - 1))} disabled={quantity <= 1}><Icon name="minus" size={17}/></button><span>{toPersianDigits(quantity)}</span><button onClick={() => setQuantity((value) => Math.min(20, variant.stock, value + 1))} disabled={quantity >= Math.min(20, variant.stock)}><Icon name="plus" size={17}/></button></div><button className="button primary buy-button" onClick={() => void add()} disabled={adding}><Icon name="bag"/>{adding ? "در حال افزودن..." : user ? "افزودن و مشاهده سبد" : "ورود و ادامه خرید"}</button></div> : <div className="unavailable-box"><Icon name="clock"/><div><b>این محصول فعلاً موجود نیست</b><span>گزینه دیگری انتخاب کن یا بعداً دوباره بررسی کن.</span></div></div>}
-        <div className="buy-trust"><TrustItem icon="shield" title="پرداخت کنترل‌شده" text="تأیید مبلغ سمت سرور"/><TrustItem icon="clock" title="تحویل در پنل" text="بعد از تأیید پرداخت"/></div>
-      </div></section>
-    <section className="reviews-section"><div className="section-title"><div><span className="eyebrow">تجربه خریداران</span><h2>نظرهای ثبت‌شده</h2></div><Link href="/reviews">ثبت نظر <Icon name="arrow-left" size={16}/></Link></div>{reviews.length ? <div className="review-grid">{reviews.map((review) => <article className="review-card" key={review.id}><div><span className="review-avatar">خ</span><div><b>خریدار تأییدشده</b><small>{new Date(review.created_at).toLocaleDateString("fa-IR")}</small></div><span className="rating"><Icon name="star" size={14}/> {toPersianDigits(review.rating)}</span></div><p>{review.body}</p></article>)}</div> : <div className="reviews-empty"><Icon name="star" size={28}/><div><b>اولین تجربه را شما ثبت کنید</b><span>بعد از خرید تکمیل‌شده، امکان ثبت نظر فعال می‌شود.</span></div></div>}</section>
-  </div>;
+export const dynamic = "force-dynamic";
+
+export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const product = await getPublicProduct(slug).catch(() => null);
+  if (!product) notFound();
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+  const canonical = `${siteUrl}/products/${encodeURIComponent(product.slug)}`;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.title_fa,
+    description: product.seo_description || product.description,
+    image: product.image ? [product.image] : undefined,
+    sku: product.sku,
+    brand: product.brand ? { "@type": "Brand", name: product.brand.title_fa } : undefined,
+    aggregateRating: product.rating_count > 0 ? {
+      "@type": "AggregateRating",
+      ratingValue: product.rating_average,
+      reviewCount: product.rating_count,
+    } : undefined,
+    offers: product.variants.map((variant) => ({
+      "@type": "Offer",
+      sku: variant.sku,
+      url: `${canonical}?variant=${variant.id}`,
+      priceCurrency: "IRR",
+      price: variant.price_rial,
+      availability: variant.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      itemCondition: "https://schema.org/NewCondition",
+    })),
+  };
+  return <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{
+      __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+    }}/>
+    <ProductDetailClient product={product}/>
+  </>;
 }
