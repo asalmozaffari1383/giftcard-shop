@@ -1,0 +1,18 @@
+:root { --primary:#6d4aff; --secondary:#17152a; --accent:#11895b; --header-color:#fff; --breadcrumbs-bg:#f0ecff; --breadcrumbs-fg:#4f35c8; --link-fg:#5b3ee4; --link-hover-color:#4428c7; }
+html[data-theme="light"], :root { --body-bg:#f7f6fa; --body-fg:#252234; --hairline-color:#e5e1ed; --border-color:#ded9e8; --darkened-bg:#f0eef5; --selected-bg:#eee9ff; }
+#header { min-height:64px; padding:0 28px; background:linear-gradient(120deg,#19162e,#4d329f); box-shadow:0 8px 30px rgba(24,22,46,.18); }
+#branding { display:flex; align-items:center; }
+.giftcard-brand { display:flex; align-items:center; gap:12px; color:#fff; }
+.giftcard-brand>span { width:38px; height:38px; display:grid; place-items:center; border-radius:12px; background:linear-gradient(145deg,#876bff,#6945ed); font-size:20px; font-weight:900; }
+.giftcard-brand div { display:grid; line-height:1.35; }.giftcard-brand strong{font-size:16px}.giftcard-brand small{color:#c9c3df;font-size:10px}
+div.breadcrumbs { padding:13px 28px; border-bottom:1px solid #ddd6fa; }
+#content { padding:26px 30px; } #content h1 { font-weight:850; color:#201d32; }
+.module, #changelist .results, .inline-group { overflow:hidden; border:1px solid #e4e0eb; border-radius:14px; background:#fff; box-shadow:0 8px 25px rgba(35,28,62,.05); }
+.module h2, .module caption, .inline-group h2 { padding:12px 15px; background:linear-gradient(90deg,#6d4aff,#7659ee); }
+thead th { padding:12px 10px; background:#f2f0f7; color:#4c4858; } tbody tr:hover { background:#faf8ff; }
+.button, input[type=submit], input[type=button], .submit-row input, a.button { border-radius:9px; background:var(--primary); }
+.button.default, input[type=submit].default, .submit-row input.default { background:#11895b; }
+input, textarea, select, .vTextField { border-radius:9px!important; border-color:#dcd7e5!important; padding:8px 10px!important; }
+#changelist-filter { border-radius:14px; background:#fff; } #changelist-filter h2 { border-radius:14px 14px 0 0; background:#24203d; }
+.object-tools a { border-radius:9px; background:#6d4aff; } .submit-row { border-radius:12px; background:#f2f0f7; }
+@media(max-width:767px){#header{padding:10px 16px}#content{padding:18px 14px}.giftcard-brand small{display:none}}

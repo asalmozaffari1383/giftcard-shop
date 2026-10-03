@@ -25,3 +25,18 @@ class AdminRoleRequiredMixin:
 
     def has_delete_permission(self, request, obj=None):
         return self._has_admin_role(request) and super().has_delete_permission(request, obj)
+
+
+class StaffRoleRequiredMixin(AdminRoleRequiredMixin):
+    """Allow verified support operators as well as administrators."""
+
+    @staticmethod
+    def _has_admin_role(request):
+        user = request.user
+        return bool(
+            user.is_authenticated
+            and user.is_active
+            and user.is_staff
+            and user.is_verified
+            and (user.is_superuser or user.is_admin or user.is_support)
+        )

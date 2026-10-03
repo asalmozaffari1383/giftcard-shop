@@ -1,0 +1,15 @@
+{
+  "products": [
+    {
+      "external_id": "apple-us-10",
+      "title": "گیفت کارت اپل ۱۰ دلار آمریکا",
+      "source_url": "https://example.com/products/apple-us-10",
+      "sku": "APPLE-US-10",
+      "price": 750000,
+      "old_price": 790000,
+      "currency": "IRT",
+      "availability": "IN_STOCK",
+      "image_url": "https://example.com/images/apple-us-10.jpg"
+    }
+  ]
+}

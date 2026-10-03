@@ -51,8 +51,9 @@ def collect_production_issues(*, live=False):
         warnings.append("Zarinpal sandbox is enabled; suitable for final staging only.")
     if not _https(settings.SMS_API_URL):
         errors.append("SMS_API_URL must be the provider HTTPS endpoint.")
-    if _placeholder(settings.SMS_API_KEY) or _placeholder(settings.SMS_TEMPLATE_ID):
-        errors.append("SMS_API_KEY and SMS_TEMPLATE_ID must be configured.")
+    if (_placeholder(settings.SMS_API_KEY) or _placeholder(settings.SMS_TEMPLATE_ID)
+            or _placeholder(settings.SMS_ORDER_TEMPLATE_ID)):
+        errors.append("SMS_API_KEY, SMS_TEMPLATE_ID and SMS_ORDER_TEMPLATE_ID must be configured.")
     if _placeholder(os.getenv("POSTGRES_PASSWORD")):
         errors.append("POSTGRES_PASSWORD is missing or still a placeholder.")
     redis_url = settings.REDIS_URL

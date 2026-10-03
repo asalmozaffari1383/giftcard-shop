@@ -6,6 +6,7 @@ from rest_framework.exceptions import APIException, ValidationError
 from apps.inventory.models import DigitalItem
 from apps.orders.models import Order
 from apps.orders.services import _release_locked, dispatch_locked
+from apps.users.tasks import send_order_completed_sms
 
 from .gateways import GatewayError, MockGateway, ZarinpalGateway
 from .models import PaymentEvent, PaymentRefund, PaymentTransaction
@@ -107,6 +108,9 @@ def verify_callback(payment_id, authority, gateway_status):
         payment.verified_at = timezone.now()
         payment.save(update_fields=["status", "reference_id", "verified_at", "updated_at"])
         PaymentEvent.objects.create(payment=payment, event="FULFILLED", gateway_code=result.code)
+        if settings.SMS_ORDER_TEMPLATE_ID:
+            transaction.on_commit(lambda: send_order_completed_sms.delay(
+                order.user.phone_number, str(order.pk)[:8].upper()))
     return payment
 
 
@@ -176,6 +180,9 @@ def fulfill_reconciliation(payment_id):
     payment.status = PaymentTransaction.Status.VERIFIED
     payment.save(update_fields=["status", "updated_at"])
     PaymentEvent.objects.create(payment=payment, event="MANUAL_RECONCILIATION_FULFILLED")
+    if settings.SMS_ORDER_TEMPLATE_ID:
+        transaction.on_commit(lambda: send_order_completed_sms.delay(
+            order.user.phone_number, str(order.pk)[:8].upper()))
     return payment
 
 

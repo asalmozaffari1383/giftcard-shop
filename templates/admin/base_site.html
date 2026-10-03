@@ -1,0 +1,5 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block title %}{{ title }} | پنل مدیریت گیفت‌کارت{% endblock %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'admin/css/giftcard-admin.css' %}">{% endblock %}
+{% block branding %}<div class="giftcard-brand"><span>G</span><div><strong>گیفت‌کارت شاپ</strong><small>پنل مدیریت فروشگاه دیجیتال</small></div></div>{% endblock %}

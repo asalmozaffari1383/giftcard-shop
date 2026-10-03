@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from apps.catalog.models import ProductVariant
 
-from .models import CartItem, Order, OrderItem
+from .models import CartItem, Order, OrderItem, OrderStatusHistory
 
 
 class CartItemSerializer(serializers.ModelSerializer):
@@ -30,11 +30,16 @@ class CheckoutSerializer(serializers.Serializer):
 
 class OrderItemSerializer(serializers.ModelSerializer):
     sku = serializers.CharField(source="variant.sku", read_only=True)
+    product_title = serializers.CharField(source="variant.product.title_fa", read_only=True)
+    product_slug = serializers.CharField(source="variant.product.slug", read_only=True)
+    variant_label = serializers.CharField(source="variant.label", read_only=True)
+    region = serializers.CharField(source="variant.region", read_only=True)
     codes = serializers.SerializerMethodField()
 
     class Meta:
         model = OrderItem
-        fields = ("id", "sku", "quantity", "unit_price_toman", "codes")
+        fields = ("id", "sku", "product_title", "product_slug", "variant_label", "region",
+                  "quantity", "unit_price_toman", "codes")
 
     def get_codes(self, obj) -> list[str]:
         if not self.context.get("include_codes") or obj.order.status != Order.Status.COMPLETED:
@@ -45,14 +50,23 @@ class OrderItemSerializer(serializers.ModelSerializer):
         return [code.reveal_secret() for code in obj.digital_codes_cache]
 
 
+class OrderStatusHistorySerializer(serializers.ModelSerializer):
+    label = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = OrderStatusHistory
+        fields = ("id", "previous_status", "status", "label", "created_at")
+
+
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    status_history = OrderStatusHistorySerializer(many=True, read_only=True)
     created_at_jalali = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = ("id", "status", "subtotal_toman", "discount_toman", "total_toman",
-                  "created_at", "created_at_jalali", "expires_at", "paid_at", "items")
+                  "created_at", "created_at_jalali", "expires_at", "paid_at", "items", "status_history")
 
     def get_created_at_jalali(self, obj) -> str:
         return jdatetime.datetime.fromgregorian(datetime=timezone.localtime(obj.created_at)).strftime("%Y/%m/%d %H:%M")

@@ -29,7 +29,7 @@ def get_or_create_cart(user, *, lock=False):
     return cart
 
 
-def _release_locked(order):
+def _release_locked(order, *, target_status=Order.Status.FAILED):
     """Release only unpaid reservations while holding the order row lock."""
     if order.status != Order.Status.PENDING:
         return
@@ -37,8 +37,22 @@ def _release_locked(order):
         status=DigitalItem.Status.AVAILABLE, reserved_order=None)
     if order.coupon_id:
         Coupon.objects.filter(pk=order.coupon_id, used_count__gt=0).update(used_count=F("used_count") - 1)
-    order.status = Order.Status.FAILED
+    order.status = target_status
     order.save(update_fields=["status", "updated_at"])
+
+
+@transaction.atomic
+def cancel_order(user, order_id):
+    """Cancel an unpaid order and release only its own reserved inventory."""
+    order = Order.objects.select_for_update().filter(pk=order_id, user=user).first()
+    if not order:
+        raise ValidationError("سفارش یافت نشد.")
+    if order.status != Order.Status.PENDING:
+        raise ValidationError("فقط سفارش در انتظار پرداخت قابل لغو است.")
+    if order.payments.filter(status="VERIFIED").exists():
+        raise ValidationError("سفارش پرداخت‌شده قابل لغو نیست.")
+    _release_locked(order, target_status=Order.Status.CANCELED)
+    return order
 
 
 @transaction.atomic

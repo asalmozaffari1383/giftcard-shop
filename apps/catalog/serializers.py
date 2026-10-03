@@ -1,3 +1,4 @@
+from django.urls import reverse
 from rest_framework import serializers
 
 from .models import Brand, Category, Product, ProductVariant
@@ -29,6 +30,7 @@ class VariantSerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
     variants = VariantSerializer(many=True, read_only=True)
     brand = BrandSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
@@ -40,3 +42,11 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = ("id", "sku", "title_fa", "slug", "description", "image", "seo_title",
                   "seo_description", "instant_delivery", "brand", "category", "rating_average",
                   "rating_count", "variants")
+
+    def get_image(self, obj):
+        if obj.image:
+            request = self.context.get("request")
+            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+        request = self.context.get("request")
+        artwork_path = reverse("product-artwork", kwargs={"slug": obj.slug})
+        return request.build_absolute_uri(artwork_path) if request else artwork_path

@@ -8,11 +8,13 @@ from .models import Review
 
 class ReviewSerializer(serializers.ModelSerializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.filter(is_active=True))
+    product_title = serializers.CharField(source="product.title_fa", read_only=True)
+    product_slug = serializers.CharField(source="product.slug", read_only=True)
     rating = serializers.IntegerField(min_value=1, max_value=5)
 
     class Meta:
         model = Review
-        fields = ("id", "product", "rating", "body", "status", "created_at")
+        fields = ("id", "product", "product_title", "product_slug", "rating", "body", "status", "created_at")
         read_only_fields = ("id", "status", "created_at")
 
     def validate_product(self, product):

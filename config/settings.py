@@ -41,7 +41,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware", "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 ROOT_URLCONF = "config.urls"
-TEMPLATES = [{"BACKEND": "django.template.backends.django.DjangoTemplates", "DIRS": [],
+TEMPLATES = [{"BACKEND": "django.template.backends.django.DjangoTemplates", "DIRS": [BASE_DIR / "templates"],
               "APP_DIRS": True, "OPTIONS": {"context_processors": [
                   "django.template.context_processors.debug", "django.template.context_processors.request",
                   "django.contrib.auth.context_processors.auth", "django.contrib.messages.context_processors.messages"]}}]
@@ -108,6 +108,7 @@ USE_I18N = True
 USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -164,6 +165,7 @@ if not DEBUG and not PUBLIC_BASE_URL.startswith("https://"):
 SMS_API_URL = os.getenv("SMS_API_URL", "")
 SMS_API_KEY = os.getenv("SMS_API_KEY", "")
 SMS_TEMPLATE_ID = os.getenv("SMS_TEMPLATE_ID", "")
+SMS_ORDER_TEMPLATE_ID = os.getenv("SMS_ORDER_TEMPLATE_ID", "")
 DEVELOPMENT_OTP_CODE = os.getenv("DEVELOPMENT_OTP_CODE", "") if DEBUG else ""
 if DEVELOPMENT_OTP_CODE and (len(DEVELOPMENT_OTP_CODE) != 6 or not DEVELOPMENT_OTP_CODE.isascii() or
                              not DEVELOPMENT_OTP_CODE.isdigit()):

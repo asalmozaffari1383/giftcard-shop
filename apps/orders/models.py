@@ -63,6 +63,7 @@ class Order(TimeStampedModel):
         PENDING = "PENDING", "در انتظار پرداخت"
         PROCESSING = "PROCESSING", "در حال پردازش"
         COMPLETED = "COMPLETED", "تکمیل‌شده"
+        CANCELED = "CANCELED", "لغوشده"
         FAILED = "FAILED", "ناموفق"
         REFUNDED = "REFUNDED", "بازپرداخت‌شده"
 
@@ -107,3 +108,14 @@ class OrderItem(models.Model):
             models.CheckConstraint(condition=Q(unit_price_toman__gt=0),
                                    name="order_item_price_positive"),
         ]
+
+
+class OrderStatusHistory(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="status_history")
+    previous_status = models.CharField(max_length=12, blank=True)
+    status = models.CharField(max_length=12, choices=Order.Status.choices)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at", "id")
+        indexes = [models.Index(fields=["order", "created_at"])]

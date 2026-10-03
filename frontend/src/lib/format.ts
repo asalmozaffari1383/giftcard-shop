@@ -17,7 +17,7 @@ export function normalizeIranianPhone(value: string) {
 
 export const orderStatus: Record<string, string> = {
   PENDING: "در انتظار پرداخت", PROCESSING: "در حال پردازش", COMPLETED: "تکمیل‌شده",
-  FAILED: "ناموفق", REFUNDED: "بازپرداخت‌شده",
+  CANCELED: "لغوشده", FAILED: "ناموفق", REFUNDED: "بازپرداخت‌شده",
 };
 
 export const ticketStatus: Record<string, string> = { OPEN: "باز", WAITING: "در انتظار پاسخ", CLOSED: "بسته" };

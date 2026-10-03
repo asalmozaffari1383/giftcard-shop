@@ -1,0 +1,28 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">خانه</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label='integrations' %}">یکپارچه‌سازی‌ها</a>
+  &rsaquo; <a href="{% url 'admin:integrations_catalogcandidate_changelist' %}">صف بررسی محصولات</a>
+  &rsaquo; ورود گروهی
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    <fieldset class="module aligned">
+      <h2>فایل محصولات</h2>
+      <div class="form-row"><div>{{ form.source.errors }}{{ form.source.label_tag }} {{ form.source }}</div></div>
+      <div class="form-row"><div>{{ form.catalog_file.errors }}{{ form.catalog_file.label_tag }} {{ form.catalog_file }}</div></div>
+    </fieldset>
+    <div class="help">
+      <p>JSON باید یک آرایه یا شیء دارای کلید <code>products</code> باشد. CSV باید ستون‌های <code>title</code> و <code>source_url</code> داشته باشد.</p>
+      <p>ستون‌های اختیاری: <code>external_id</code>، <code>sku</code>، <code>price</code>، <code>old_price</code>، <code>currency</code>، <code>availability</code> و <code>image_url</code>.</p>
+    </div>
+    <div class="submit-row"><input type="submit" value="پردازش فایل" class="default"></div>
+  </form>
+</div>
+{% endblock %}

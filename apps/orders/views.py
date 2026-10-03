@@ -8,7 +8,7 @@ from apps.inventory.models import DigitalItem
 
 from .models import Cart, CartItem, Order, OrderItem
 from .serializers import CartItemSerializer, CartItemUpdateSerializer, CheckoutSerializer, OrderSerializer
-from .services import checkout, get_or_create_cart
+from .services import cancel_order, checkout, get_or_create_cart
 
 
 class CartView(generics.GenericAPIView):
@@ -85,13 +85,13 @@ class OrderQuerysetMixin:
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return self.queryset
-        items = OrderItem.objects.select_related("variant")
+        items = OrderItem.objects.select_related("variant", "variant__product")
         if self.kwargs.get("pk"):
             codes = DigitalItem.objects.only("id", "sold_order_item_id", "encrypted_payload")
             items = items.prefetch_related(Prefetch("digital_items", queryset=codes,
                                                     to_attr="digital_codes_cache"))
         return Order.objects.filter(user=self.request.user).prefetch_related(
-            Prefetch("items", queryset=items)).order_by("-created_at")
+            Prefetch("items", queryset=items), "status_history").order_by("-created_at")
 
 
 class OrderListView(OrderQuerysetMixin, generics.ListAPIView):
@@ -108,3 +108,12 @@ class OrderDetailView(OrderQuerysetMixin, generics.RetrieveAPIView):
         response = super().finalize_response(request, response, *args, **kwargs)
         response["Cache-Control"] = "no-store"
         return response
+
+
+class OrderCancelView(generics.GenericAPIView):
+    serializer_class = OrderSerializer
+
+    @extend_schema(request=None, responses=OrderSerializer)
+    def post(self, request, pk):
+        order = cancel_order(request.user, pk)
+        return Response(OrderSerializer(order, context={"request": request}).data)

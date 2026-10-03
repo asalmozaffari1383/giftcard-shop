@@ -20,10 +20,10 @@ from apps.payments.services import (
 from apps.users.models import User
 
 from .models import Cart, CartItem, Order
-from .services import checkout, expire_order
+from .services import cancel_order, checkout, expire_order
 
 
-@override_settings(ZARINPAL_MERCHANT_ID="test-merchant")
+@override_settings(PAYMENT_GATEWAY="zarinpal", ZARINPAL_MERCHANT_ID="test-merchant")
 class CheckoutAndFulfillmentTests(TestCase):
     """Run against PostgreSQL; SQLite does not provide row-level locks."""
 
@@ -54,6 +54,13 @@ class CheckoutAndFulfillmentTests(TestCase):
         order.refresh_from_db()
         self.assertEqual(order.status, Order.Status.FAILED)
         self.assertEqual(DigitalItem.objects.filter(status=DigitalItem.Status.AVAILABLE).count(), 2)
+
+    def test_customer_can_cancel_unpaid_order_and_release_stock(self):
+        order, _ = checkout(self.user, idempotency_key="checkout-cancel-001")
+        canceled = cancel_order(self.user, order.pk)
+        self.assertEqual(canceled.status, Order.Status.CANCELED)
+        self.assertEqual(DigitalItem.objects.filter(status=DigitalItem.Status.AVAILABLE).count(), 2)
+        self.assertEqual(list(order.status_history.values_list("status", flat=True)), ["PENDING", "CANCELED"])
 
     def test_another_payment_attempt_is_blocked_while_ready(self):
         order, _ = checkout(self.user, idempotency_key="checkout-key-003")
