@@ -1,0 +1,36 @@
+{
+  "stage": 1,
+  "source": "/Users/asal/Documents/giftcard-shop",
+  "destination": "/Users/asal/Documents/Alisan-shop",
+  "initial_copy": {
+    "files": 54470,
+    "symlinks": 30,
+    "bytes": 771247269,
+    "complete_tree_and_sha256_match": true
+  },
+  "original_files_unchanged_after_isolation": true,
+  "original_volume_hashes_unchanged": true,
+  "database": {
+    "name": "alisan_shop",
+    "tables": 36,
+    "row_counts_match": true,
+    "backup_archive_validated": true
+  },
+  "validation": {
+    "backend_tests": 33,
+    "backend_tests_passed": true,
+    "frontend_build_passed": true,
+    "typescript_passed": true,
+    "development_compose_valid": true,
+    "production_example_compose_valid": true,
+    "git_diff_check_passed": true
+  },
+  "ports": {
+    "frontend": 3001,
+    "backend": 8001,
+    "postgres": 5433,
+    "redis": 6380
+  },
+  "next_stage": "Rebranding after user approval",
+  "commit_created": false
+}

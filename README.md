@@ -1,4 +1,4 @@
-# Digital Products Marketplace
+# Alisan Shop
 
 The RTL storefront lives in `frontend/` and is built with Next.js, TypeScript and Tailwind CSS.
 
@@ -6,10 +6,10 @@ The RTL storefront lives in `frontend/` and is built with Next.js, TypeScript an
 
 Run `docker compose up --build`, then open:
 
-- Storefront: `http://localhost:3000`
-- API: `http://localhost:8000/api/v1/`
-- API docs: `http://localhost:8000/api/v1/docs/`
-- Admin: `http://localhost:8000/admin/`
+- Storefront: `http://localhost:3001`
+- API: `http://localhost:8001/api/v1/`
+- API docs: `http://localhost:8001/api/v1/docs/`
+- Admin: `http://localhost:8001/admin/`
 
 ### Local development login and payment
 
@@ -86,3 +86,7 @@ SQLite cannot prove row-locking behavior under concurrency, so PostgreSQL CI rem
 ## Operational safeguards
 
 Keep callbacks reachable over HTTPS, monitor `PaymentTransaction` entries in `RECONCILIATION`, and reconcile them against gateway settlements before manual refunds. Run `flushexpiredtokens` daily for SimpleJWT blacklist cleanup. Enforce staff MFA and database backups operationally; neither is implemented by this API. Do not log OTPs, payment credentials, or decrypted codes. Use a payment gateway sandbox and provider-specific SMS staging credentials before production rollout.
+# فروشگاه لوازم‌تحریر آلیسان
+
+برای اجرای نسخه فعلی و راهنمای امکانات، [RUN_ALISAN.md](RUN_ALISAN.md) را بخوانید.
+راهنمای قدیمی زیر شامل امکانات دیجیتال آرشیوی نیز هست؛ کاتالوگ فعال آلیسان فیزیکی است.

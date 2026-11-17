@@ -9,7 +9,7 @@ import { formatToman } from "@/lib/format";
 import type { Payment } from "@/lib/types";
 
 const paymentConfig: Record<string, { title:string; text:string; tone:"success"|"warning"|"danger"; icon:"check"|"clock"|"x" }> = {
-  VERIFIED: { title:"پرداخت با موفقیت تأیید شد", text:"سفارش تکمیل شده و کد دیجیتال در جزئیات سفارش قابل مشاهده است.", tone:"success", icon:"check" },
+  VERIFIED: { title:"پرداخت با موفقیت تأیید شد", text:"پرداخت ثبت شد؛ وضعیت آماده‌سازی و ارسال را در جزئیات سفارش پیگیری کن.", tone:"success", icon:"check" },
   READY: { title:"پرداخت هنوز تکمیل نشده", text:"اگر از درگاه بازگشته‌ای، چند لحظه صبر کن و وضعیت را دوباره بررسی کن.", tone:"warning", icon:"clock" },
   INITIATING: { title:"در حال آماده‌سازی پرداخت", text:"درخواست پرداخت هنوز نهایی نشده است.", tone:"warning", icon:"clock" },
   FAILED: { title:"پرداخت ناموفق یا لغوشده", text:"مبلغی تأیید نشده است. می‌توانی از سفارش‌ها دوباره وضعیت را بررسی کنی.", tone:"danger", icon:"x" },

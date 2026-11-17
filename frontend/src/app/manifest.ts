@@ -2,13 +2,14 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "گیفت‌کارت شاپ",
-    short_name: "گیفت‌کارت",
-    description: "فروشگاه محصولات دیجیتال و گیفت کارت",
+    name: "آلیسان | Alisan",
+    short_name: "آلیسان",
+    description: "فروشگاه لوازم‌تحریر و پک‌های مدرسه آلیسان",
+    icons: [{ src: "/alisan-mark.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }],
     start_url: "/",
     display: "standalone",
-    background_color: "#f7f5fb",
-    theme_color: "#6d28d9",
+    background_color: "#fffaf5",
+    theme_color: "#ef7898",
     lang: "fa",
     dir: "rtl",
   };

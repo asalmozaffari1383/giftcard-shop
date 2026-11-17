@@ -16,13 +16,14 @@ export function ProductCard({ product }: { product: Product }) {
   return <article className={`product-card ${!inStock ? "out-of-stock" : ""}`}>
     <Link href={`/products/${product.slug}`} className="product-image" aria-label={`مشاهده ${product.title_fa}`}>
       <span className="product-glow"/>
-      {image ? <Image src={image} alt={product.title_fa} width={560} height={380} unoptimized /> : <div className="product-placeholder"><span>{product.brand?.title_fa?.slice(0, 1) || "G"}</span><small>{product.brand?.title_fa || product.category.title_fa}</small></div>}
-      <div className="product-badges">{product.instant_delivery && <StatusPill tone="success"><Icon name="clock" size={14}/> تحویل آنی</StatusPill>}{discount > 0 && <StatusPill tone="danger">٪{toPersianDigits(discount)} تخفیف</StatusPill>}</div>
+      {image ? <Image src={image} alt={product.title_fa} width={560} height={380} unoptimized /> : <div className="product-placeholder"><span>{product.brand?.title_fa?.slice(0, 1) || "A"}</span><small>{product.brand?.title_fa || product.category.title_fa}</small></div>}
+      <div className="product-badges">{product.is_bundle && <StatusPill tone="warning"><Icon name="sparkles" size={14}/> پک ویژه</StatusPill>}{product.instant_delivery && <StatusPill tone="success"><Icon name="clock" size={14}/> آماده ارسال</StatusPill>}{discount > 0 && <StatusPill tone="danger">٪{toPersianDigits(discount)} تخفیف</StatusPill>}</div>
       {!inStock && <span className="unavailable-overlay">در انتظار موجودی</span>}
     </Link>
     <div className="product-body">
       <div className="product-meta"><span>{product.brand?.title_fa || product.category.title_fa}</span><span className="rating"><Icon name="star" size={14}/> {toPersianDigits(product.rating_average || "—")} <small>({toPersianDigits(product.rating_count)})</small></span></div>
       <h3><Link href={`/products/${product.slug}`}>{product.title_fa}</Link></h3>
+      <Link className="compare-link" href={`/compare?first=${encodeURIComponent(product.slug)}`}>مقایسه با محصول دیگر</Link>
       <div className="stock-line"><span className={inStock ? "stock-dot available" : "stock-dot"}/>{inStock ? `${toPersianDigits(available.length)} انتخاب موجود` : "فعلاً غیرقابل خرید"}</div>
       <div className="card-footer"><div className="price-block">{oldPrice && <del>{formatToman(oldPrice)}</del>}<strong>{cheapest ? formatToman(cheapest.price_toman) : "در انتظار قیمت"}</strong>{cheapest && <small>{inStock ? "شروع قیمت" : "آخرین قیمت ثبت‌شده"}</small>}</div><Link className="card-action" href={`/products/${product.slug}`} aria-label={`مشاهده ${product.title_fa}`}><Icon name="chevron-left"/></Link></div>
     </div>

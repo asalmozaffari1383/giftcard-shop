@@ -1,7 +1,9 @@
 export type Paginated<T> = { count: number; next: string | null; previous: string | null; results: T[] };
 
-export type Profile = { first_name: string; last_name: string; email: string };
-export type User = { id: number; phone_number: string; is_verified: boolean; is_customer: boolean; profile: Profile | null };
+export type Profile = { first_name: string; last_name: string; email: string; birth_date?: string | null };
+export type Address = { id: number; title: string; recipient_name: string; phone_number: string; province: string; city: string; address: string; postal_code: string; is_default: boolean; created_at: string };
+export type WishlistItem = { id: number; product: number; product_title: string; product_slug: string; product_image: string | null; created_at: string };
+export type User = { id: number; phone_number: string; is_verified: boolean; is_customer: boolean; profile: Profile | null; loyalty_points: number };
 export type Category = { id: number; parent: number | null; title_fa: string; slug: string };
 export type Brand = { id: number; title_fa: string; slug: string };
 export type Variant = {
@@ -10,17 +12,21 @@ export type Variant = {
 };
 export type Product = {
   id: number; sku: string; title_fa: string; slug: string; description: string; image: string | null;
+  images: string[]; price: number; discount: number; final_price: number; stock: number; kind: "PHYSICAL" | "DIGITAL"; age_group: string; school_grade: string;
+  attributes: Record<string, string>; tags: string[]; is_bundle: boolean; bundle_items: string[];
   seo_title: string; seo_description: string; instant_delivery: boolean; brand: Brand | null;
   category: Category; rating_average: string | null; rating_count: number; variants: Variant[];
 };
-export type CartItem = { id: number; variant: number; quantity: number; price_toman: number; product_title: string; product_slug: string; variant_label: string };
-export type OrderItem = { id: number; sku: string; product_title: string; product_slug: string; variant_label: string; region: string; quantity: number; unit_price_toman: number; codes: string[] };
+export type CartItem = { id: number; variant: number; quantity: number; price_toman: number; product_title: string; product_slug: string; variant_label: string; product_kind: "PHYSICAL" | "DIGITAL" };
+export type OrderItem = { id: number; variant: number; sku: string; product_title: string; product_slug: string; variant_label: string; region: string; quantity: number; unit_price_toman: number; codes: string[] };
 export type OrderStatusHistory = { id: number; previous_status: string; status: string; label: string; created_at: string };
 export type Order = {
-  id: string; status: "PENDING" | "PROCESSING" | "COMPLETED" | "CANCELED" | "FAILED" | "REFUNDED";
+  id: string; status: "PENDING" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELED" | "FAILED" | "REFUNDED";
   subtotal_toman: number; discount_toman: number; total_toman: number; created_at: string;
   created_at_jalali: string; expires_at: string; paid_at: string | null; items: OrderItem[]; status_history: OrderStatusHistory[];
+  shipping_toman: number; shipping_address: Record<string, string>; shipping_method: string; tracking_code: string; is_physical: boolean;
 };
+export type ShippingMethod = { id: number; title: string; price_toman: number; free_above_toman: number };
 export type Payment = {
   id: string; order: string; gateway: string; amount_toman: number;
   status: string; reference_id: string; verified_at: string | null;

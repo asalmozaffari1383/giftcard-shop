@@ -8,7 +8,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const { slug } = await params;
   const product = await getPublicProduct(slug).catch(() => null);
   if (!product) notFound();
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001").replace(/\/$/, "");
   const canonical = `${siteUrl}/products/${encodeURIComponent(product.slug)}`;
   const jsonLd = {
     "@context": "https://schema.org",

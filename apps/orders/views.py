@@ -6,8 +6,8 @@ from rest_framework.response import Response
 
 from apps.inventory.models import DigitalItem
 
-from .models import Cart, CartItem, Order, OrderItem
-from .serializers import CartItemSerializer, CartItemUpdateSerializer, CheckoutSerializer, OrderSerializer
+from .models import Cart, CartItem, Order, OrderItem, ShippingMethod
+from .serializers import CartItemSerializer, CartItemUpdateSerializer, CheckoutSerializer, OrderSerializer, ShippingMethodSerializer
 from .services import cancel_order, checkout, get_or_create_cart
 
 
@@ -76,6 +76,12 @@ class CheckoutView(generics.GenericAPIView):
                                   **serializer.validated_data)
         response_status = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         return Response(OrderSerializer(order, context={"request": request}).data, status=response_status)
+
+
+class ShippingMethodListView(generics.ListAPIView):
+    serializer_class = ShippingMethodSerializer
+    permission_classes = []
+    queryset = ShippingMethod.objects.filter(is_active=True).order_by("price_toman", "id")
 
 
 class OrderQuerysetMixin:

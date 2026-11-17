@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title>Alisan</title>
+  <defs>
+    <linearGradient id="g" x1="12" y1="10" x2="116" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ef7898"/>
+      <stop offset="1" stop-color="#efa84f"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="36" fill="#243047"/>
+  <path d="M31 91 55 31a10 10 0 0 1 18 0l24 60H82l-6-17H52l-6 17H31Zm27-31h13l-6-18-7 18Z" fill="url(#g)"/>
+  <path d="M85 24c12 3 18 10 20 21-12 2-20-3-23-13 0-3 1-6 3-8Z" fill="#93d8bd"/>
+</svg>

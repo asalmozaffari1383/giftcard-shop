@@ -25,8 +25,8 @@
 ## اولویت یک — استقرار فنی
 
 1. Docker، Docker Compose، Nginx و Certbot روی سرور نصب شوند.
-2. پروژه در `/opt/giftcard-shop` قرار بگیرد و `.env.production` فقط روی سرور ساخته شود.
-3. نمونه Nginx از `deploy/nginx/giftcard-shop.conf.example` با دامنه واقعی جایگزین شود.
+2. پروژه در `/opt/Alisan-shop` قرار بگیرد و `.env.production` فقط روی سرور ساخته شود.
+3. نمونه Nginx از `deploy/nginx/alisan-shop.conf.example` با دامنه واقعی جایگزین شود.
 4. SSL هر دو دامنه دریافت و تمدید خودکار Certbot فعال شود.
 5. `bash scripts/deploy_production.sh` اجرا شود.
 6. بکاپ روزانه PostgreSQL، Snapshot هفتگی سرور و نگهداری نسخه خارج از سرور تنظیم شود.

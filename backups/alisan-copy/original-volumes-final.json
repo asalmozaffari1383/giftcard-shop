@@ -1,0 +1,10 @@
+{
+  "original_containers_remain_stopped": true,
+  "original_volume_hashes_unchanged": true,
+  "hashes": {
+    "postgres_data": "af82ac33d928b001db46e67294743fb75f794cc2406dcde09dc1dda84890e7b4",
+    "redis_data": "248064bd4bdbd93c375d441d1faa0ac2fdf23c9a3527acfc02117db1bc3af687",
+    "media_data": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "static_data": "b3ace7708e601c12e9e6d09b5f2950e6721ac01418e8686a8ebc035342e267f8"
+  }
+}

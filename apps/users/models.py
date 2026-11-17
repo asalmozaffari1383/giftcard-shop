@@ -4,6 +4,8 @@ from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.common.models import TimeStampedModel
@@ -71,6 +73,46 @@ class Profile(TimeStampedModel):
     first_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100, blank=True)
     email = models.EmailField(blank=True)
+    birth_date = models.DateField(null=True, blank=True, verbose_name="تاریخ تولد")
+
+
+class Address(TimeStampedModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="addresses")
+    title = models.CharField(max_length=80, default="آدرس اصلی")
+    recipient_name = models.CharField(max_length=120)
+    phone_number = models.CharField(max_length=13)
+    province = models.CharField(max_length=80)
+    city = models.CharField(max_length=80)
+    address = models.TextField(max_length=500)
+    postal_code = models.CharField(max_length=20)
+    is_default = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ("-is_default", "-created_at")
+        constraints = [models.UniqueConstraint(fields=["user"], condition=Q(is_default=True), name="one_default_address")]
+
+    @transaction.atomic
+    def save(self, *args, **kwargs):
+        User.objects.select_for_update().get(pk=self.user_id)
+        self.phone_number = normalize_phone(self.phone_number)
+        if self.is_default:
+            type(self).objects.filter(user=self.user, is_default=True).exclude(pk=self.pk).update(is_default=False)
+        super().save(*args, **kwargs)
+
+
+class LoyaltyEntry(TimeStampedModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="loyalty_entries")
+    order = models.OneToOneField("orders.Order", on_delete=models.PROTECT)
+    points = models.PositiveIntegerField()
+
+
+class WishlistItem(TimeStampedModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="wishlist")
+    product = models.ForeignKey("catalog.Product", on_delete=models.CASCADE, related_name="wishlisted_by")
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["user", "product"], name="unique_user_wishlist_product")]
+        ordering = ("-created_at",)
 
 
 class OTPChallenge(models.Model):

@@ -1,0 +1,19 @@
+:root { --primary:#ef7898; --secondary:#243047; --accent:#2c9b76; --header-color:#fff; --breadcrumbs-bg:#fff0f4; --breadcrumbs-fg:#c94c71; --link-fg:#c94c71; --link-hover-color:#a83c5d; }
+html[data-theme="light"], :root { --body-bg:#fffaf5; --body-fg:#252234; --hairline-color:#f0dfd2; --border-color:#efdfd5; --darkened-bg:#fff4eb; --selected-bg:#fff0f4; }
+#header { min-height:64px; padding:0 28px; background:linear-gradient(120deg,#243047,#526f87); box-shadow:0 8px 30px rgba(24,22,46,.18); }
+#branding { display:flex; align-items:center; }
+.alisan-brand { display:flex; align-items:center; gap:12px; color:#fff; }
+.alisan-brand>span { width:38px; height:38px; display:grid; place-items:center; border-radius:12px; background:linear-gradient(145deg,#f08aa5,#d6537d); font-size:20px; font-weight:900; }
+.alisan-brand div { display:grid; line-height:1.35; }.alisan-brand strong{font-size:16px}.alisan-brand small{color:#f9d9e3;font-size:10px}
+div.breadcrumbs { padding:13px 28px; border-bottom:1px solid #ddd6fa; }
+#content { padding:26px 30px; } #content h1 { font-weight:850; color:#243047; }
+.module, #changelist .results, .inline-group { overflow:hidden; border:1px solid #f0dfd2; border-radius:14px; background:#fff; box-shadow:0 8px 25px rgba(35,28,62,.05); }
+.module h2, .module caption, .inline-group h2 { padding:12px 15px; background:linear-gradient(90deg,#ef7898,#efa84f); }
+thead th { padding:12px 10px; background:#f2f0f7; color:#4c4858; } tbody tr:hover { background:#faf8ff; }
+.button, input[type=submit], input[type=button], .submit-row input, a.button { border-radius:9px; background:var(--primary); }
+.button.default, input[type=submit].default, .submit-row input.default { background:#2c9b76; }
+input, textarea, select, .vTextField { border-radius:9px!important; border-color:#dcd7e5!important; padding:8px 10px!important; }
+#changelist-filter { border-radius:14px; background:#fff; } #changelist-filter h2 { border-radius:14px 14px 0 0; background:#243047; }
+.object-tools a { border-radius:9px; background:#ef7898; } .submit-row { border-radius:12px; background:#fff4eb; }
+@media(max-width:767px){#header{padding:10px 16px}#content{padding:18px 14px}.alisan-brand small{display:none}}
+.alisan-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:24px 0}.alisan-metrics article{background:var(--body-bg);border:1px solid var(--border-color);border-radius:16px;padding:20px}.alisan-metrics strong{font-size:24px;color:var(--link-fg)}.alisan-chart{display:flex;align-items:flex-end;gap:12px;overflow:auto;min-height:200px;padding:20px;background:var(--body-bg);border-radius:16px}.alisan-chart>div{min-width:48px;display:grid;gap:8px;text-align:center}.alisan-chart b{display:block;background:linear-gradient(#f3a4bb,#ef7898);border-radius:8px 8px 0 0}

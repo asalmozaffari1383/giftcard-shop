@@ -1,3 +1,5 @@
+name: alisan-shop
+
 services:
   db:
     image: postgres:16-alpine
@@ -38,7 +40,7 @@ services:
       python manage.py collectstatic --noinput &&
       gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 60 --access-logfile - --error-logfile -"
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8001:8000"
     volumes:
       - media_data:/app/media
       - static_data:/app/staticfiles
@@ -49,7 +51,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready/', timeout=5)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://localhost:8000/health/ready/', headers={'Host': 'web'}), timeout=5)"]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -78,6 +80,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${PUBLIC_BASE_URL}/api/v1
         NEXT_PUBLIC_SITE_URL: ${FRONTEND_URL}
+        NEXT_PUBLIC_CATALOG_ONLY: ${CATALOG_ONLY:-false}
         NEXT_PUBLIC_BUSINESS_NAME: ${NEXT_PUBLIC_BUSINESS_NAME}
         NEXT_PUBLIC_SUPPORT_PHONE: ${NEXT_PUBLIC_SUPPORT_PHONE}
         NEXT_PUBLIC_SUPPORT_HOURS: ${NEXT_PUBLIC_SUPPORT_HOURS}
@@ -90,7 +93,7 @@ services:
       NEXT_PUBLIC_SITE_URL: ${FRONTEND_URL}
       AUTH_COOKIE_SECURE: "true"
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3001:3000"
     restart: unless-stopped
     depends_on:
       web:

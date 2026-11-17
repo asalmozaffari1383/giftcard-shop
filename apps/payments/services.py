@@ -6,6 +6,7 @@ from rest_framework.exceptions import APIException, ValidationError
 from apps.inventory.models import DigitalItem
 from apps.orders.models import Order
 from apps.orders.services import _release_locked, dispatch_locked
+from apps.orders.physical import reservation_complete
 from apps.users.tasks import send_order_completed_sms
 
 from .gateways import GatewayError, MockGateway, ZarinpalGateway
@@ -90,9 +91,9 @@ def verify_callback(payment_id, authority, gateway_status):
             return payment
         if order.payments.filter(status=PaymentTransaction.Status.VERIFIED).exists():
             raise ValidationError("سفارش قبلاً پرداخت شده است.")
-        if any(DigitalItem.objects.filter(reserved_order=order, variant=item.variant,
+        if not reservation_complete(order) or (not order.is_physical and any(DigitalItem.objects.filter(reserved_order=order, variant=item.variant,
                                           status=DigitalItem.Status.RESERVED).count() != item.quantity
-               for item in order.items.select_related("variant")):
+               for item in order.items.select_related("variant"))):
             payment.status = PaymentTransaction.Status.RECONCILIATION
             payment.reference_id = result.reference_id
             payment.verified_at = timezone.now()
@@ -130,7 +131,7 @@ def record_external_refund(payment_id, external_reference, admin):
         raise ValidationError("شناسه استرداد قبلاً ثبت شده است.")
     if order.status == Order.Status.PENDING:
         _release_locked(order)
-    if order.status not in (Order.Status.COMPLETED, Order.Status.FAILED):
+    if order.status not in (Order.Status.COMPLETED, Order.Status.FAILED, Order.Status.PROCESSING, Order.Status.SHIPPED):
         raise ValidationError("وضعیت سفارش برای استرداد نامعتبر است.")
     try:
         with transaction.atomic():
@@ -139,6 +140,15 @@ def record_external_refund(payment_id, external_reference, admin):
     except IntegrityError as exc:
         raise ValidationError("این پرداخت یا شناسهٔ استرداد قبلاً ثبت شده است.") from exc
     if payment.status == PaymentTransaction.Status.VERIFIED or order.status == Order.Status.FAILED:
+        if order.is_physical and order.status == Order.Status.PROCESSING:
+            from django.db.models import F
+            from apps.catalog.models import Product
+            reservations = list(order.stock_reservations.filter(state="CONSUMED").order_by("product_id"))
+            list(Product.objects.select_for_update().filter(pk__in=[item.product_id for item in reservations]).order_by("pk"))
+            for reservation in reservations:
+                Product.objects.filter(pk=reservation.product_id).update(stock=F("stock") + reservation.quantity)
+                reservation.state = "RELEASED"
+                reservation.save(update_fields=["state"])
         order.status = Order.Status.REFUNDED
         order.save(update_fields=["status", "updated_at"])
     PaymentEvent.objects.create(payment=payment, event="REFUND_RECORDED")
@@ -165,7 +175,9 @@ def fulfill_reconciliation(payment_id):
         )
     if order.payments.exclude(pk=payment.pk).filter(status=PaymentTransaction.Status.VERIFIED).exists():
         raise ValidationError("سفارش قبلاً با تراکنش دیگری تحویل شده است.")
-    for item in order.items.select_related("variant").order_by("pk"):
+    if not reservation_complete(order):
+        raise ValidationError("رزرو موجودی کامل نیست؛ تراکنش باید بررسی شود.")
+    for item in order.items.select_related("variant").order_by("pk") if not order.is_physical else []:
         reserved_ids = list(DigitalItem.objects.select_for_update().filter(
             reserved_order=order, variant=item.variant, status=DigitalItem.Status.RESERVED,
         ).order_by("pk").values_list("pk", flat=True))

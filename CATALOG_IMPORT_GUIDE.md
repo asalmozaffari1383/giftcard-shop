@@ -75,7 +75,7 @@ docker compose exec web python manage.py sync_catalog_sources --source accsell
 ## پرامپت قابل استفاده در آینده
 
 ```text
-فهرست محصولات دیجیتال منبع جدید را به سیستم Catalog Import پروژه giftcard-shop اضافه کن.
+فهرست محصولات دیجیتال منبع جدید را به سیستم Catalog Import پروژه Alisan-shop اضافه کن.
 ابتدا robots.txt و روش عمومی مجاز منبع را بررسی کن. فقط عنوان، URL، SKU، قیمت عمومی،
 وضعیت موجودی و URL تصویر را به CatalogCandidate وارد کن. توضیحات و تصاویر را کپی یا منتشر نکن.
 برای منبع Adapter مستقل و idempotent بساز، محصولات تکراری را با normalized_title شناسایی کن،

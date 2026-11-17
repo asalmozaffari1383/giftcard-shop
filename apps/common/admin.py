@@ -1,5 +1,5 @@
 class AdminRoleRequiredMixin:
-    """Restrict sensitive admin models to verified marketplace administrators."""
+    """Restrict sensitive admin models to verified Alisan administrators."""
 
     @staticmethod
     def _has_admin_role(request):

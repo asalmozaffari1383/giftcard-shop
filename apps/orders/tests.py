@@ -31,7 +31,7 @@ class CheckoutAndFulfillmentTests(TestCase):
         self.user = User.objects.create_user("09123456789")
         category = Category.objects.create(title_fa="کارت هدیه", slug="gift")
         brand = Brand.objects.create(title_fa="نمونه", slug="example")
-        product = Product.objects.create(category=category, brand=brand, sku="P1", title_fa="کارت نمونه", slug="sample")
+        product = Product.objects.create(category=category, brand=brand, sku="P1", title_fa="کارت نمونه", slug="sample", kind="DIGITAL")
         self.variant = ProductVariant.objects.create(product=product, sku="V1", label="10 USD",
                                                      face_value=10, region="US", price_toman=100000)
         for secret in ("secret-one", "secret-two"):

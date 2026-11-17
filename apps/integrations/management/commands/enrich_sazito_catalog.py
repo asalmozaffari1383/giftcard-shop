@@ -45,7 +45,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         session = requests.Session()
-        session.headers["User-Agent"] = "GiftcardShopCatalogResearch/1.0"
+        session.headers["User-Agent"] = "AlisanShopCatalogResearch/1.0"
         queryset = CatalogCandidate.objects.filter(source__slug__in=("accsell", "accountplus"))
         updated = failed = 0
         for candidate in queryset.iterator():

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth, useCart } from "@/contexts/app-context";
@@ -9,6 +10,8 @@ import { Icon } from "@/components/ui";
 
 const links = [
   { href: "/products", label: "فروشگاه" },
+  { href: "/school-builder", label: "پک مدرسه" },
+  { href: "/school-lists", label: "لیست مدرسه" },
   { href: "/orders", label: "سفارش‌ها" },
   { href: "/tickets", label: "پشتیبانی" },
   { href: "/contact", label: "تماس با ما" },
@@ -22,10 +25,10 @@ export function Header() {
   useEffect(() => setOpen(false), [pathname]);
 
   return <>
-    <div className="announcement"><div className="container"><span><Icon name="sparkles" size={16}/> تحویل خودکار کد پس از تأیید پرداخت</span><span className="announcement-secondary">پشتیبانی سفارش‌های دیجیتال</span></div></div>
+    <div className="announcement"><div className="container"><span><Icon name="sparkles" size={16}/> خرید مطمئن و تجربه‌ای رنگارنگ</span><span className="announcement-secondary">پشتیبانی آلیسان</span></div></div>
     <header className="site-header">
       <div className="container header-inner">
-        <Link href="/" className="brand" aria-label="صفحه اصلی گیفت‌کارت شاپ"><span className="brand-mark">G</span><span><b>گیفت‌کارت</b><small>فروشگاه محصولات دیجیتال</small></span></Link>
+        <Link href="/" className="brand" aria-label="صفحه اصلی آلیسان"><Image src="/alisan-mark.svg" alt="" width={44} height={44}/><span><b>آلیسان</b><small>دنیای لوازم‌تحریر</small></span></Link>
         <nav className={`main-nav ${open ? "open" : ""}`} aria-label="منوی اصلی">
           {links.map((link) => <Link className={pathname.startsWith(link.href) ? "active" : ""} href={link.href} key={link.href}>{link.label}</Link>)}
         </nav>

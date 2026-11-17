@@ -27,7 +27,10 @@ class CartItem(models.Model):
 
 class Coupon(TimeStampedModel):
     code = models.CharField(max_length=40)
-    percent_off = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
+    percent_off = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(100)])
+    amount_off = models.PositiveBigIntegerField(default=0, verbose_name="تخفیف مبلغی")
+    assigned_user = models.ForeignKey("users.User", null=True, blank=True, on_delete=models.PROTECT, related_name="personal_coupons")
+    birthday_only = models.BooleanField(default=False)
     max_discount_toman = models.PositiveBigIntegerField(null=True, blank=True)
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField()
@@ -39,7 +42,7 @@ class Coupon(TimeStampedModel):
         from django.core.exceptions import ValidationError
         invalid_percent = self.percent_off is not None and self.percent_off > 100
         invalid_dates = self.starts_at and self.ends_at and self.starts_at >= self.ends_at
-        if invalid_percent or invalid_dates:
+        if invalid_percent or invalid_dates or bool(self.percent_off) == bool(self.amount_off):
             raise ValidationError("تنظیمات تخفیف نامعتبر است.")
 
     def save(self, *args, **kwargs):
@@ -49,7 +52,8 @@ class Coupon(TimeStampedModel):
     class Meta:
         constraints = [
             models.UniqueConstraint(Lower("code"), name="coupon_code_ci_unique"),
-            models.CheckConstraint(condition=Q(percent_off__gte=1, percent_off__lte=100),
+            models.CheckConstraint(condition=Q(percent_off__lte=100) &
+                                   (Q(percent_off__gt=0, amount_off=0) | Q(percent_off=0, amount_off__gt=0)),
                                    name="coupon_percent_range"),
             models.CheckConstraint(condition=Q(starts_at__lt=F("ends_at")), name="coupon_date_range"),
             models.CheckConstraint(condition=Q(usage_limit__gte=1), name="coupon_usage_limit_positive"),
@@ -61,8 +65,9 @@ class Coupon(TimeStampedModel):
 class Order(TimeStampedModel):
     class Status(models.TextChoices):
         PENDING = "PENDING", "در انتظار پرداخت"
-        PROCESSING = "PROCESSING", "در حال پردازش"
-        COMPLETED = "COMPLETED", "تکمیل‌شده"
+        PROCESSING = "PROCESSING", "در حال آماده‌سازی"
+        SHIPPED = "SHIPPED", "ارسال‌شده"
+        COMPLETED = "COMPLETED", "تحویل‌شده"
         CANCELED = "CANCELED", "لغوشده"
         FAILED = "FAILED", "ناموفق"
         REFUNDED = "REFUNDED", "بازپرداخت‌شده"
@@ -73,6 +78,11 @@ class Order(TimeStampedModel):
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
     subtotal_toman = models.PositiveBigIntegerField()
     discount_toman = models.PositiveBigIntegerField(default=0)
+    shipping_toman = models.PositiveBigIntegerField(default=0)
+    shipping_address = models.JSONField(default=dict, blank=True)
+    tracking_code = models.CharField(max_length=100, blank=True)
+    shipping_method = models.CharField(max_length=120, blank=True)
+    is_physical = models.BooleanField(default=False)
     total_toman = models.PositiveBigIntegerField()
     coupon = models.ForeignKey(Coupon, null=True, blank=True, on_delete=models.PROTECT)
     expires_at = models.DateTimeField(db_index=True)
@@ -89,7 +99,7 @@ class Order(TimeStampedModel):
                                    name="order_discount_lte_subtotal"),
             models.CheckConstraint(condition=Q(subtotal_toman__gt=0, total_toman__gt=0),
                                    name="order_amounts_positive"),
-            models.CheckConstraint(condition=Q(total_toman=F("subtotal_toman") - F("discount_toman")),
+            models.CheckConstraint(condition=Q(total_toman=F("subtotal_toman") - F("discount_toman") + F("shipping_toman")),
                                    name="order_total_consistency"),
         ]
 
@@ -99,16 +109,36 @@ class OrderItem(models.Model):
     variant = models.ForeignKey("catalog.ProductVariant", on_delete=models.PROTECT)
     quantity = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(20)])
     unit_price_toman = models.PositiveBigIntegerField()
+    product_title_snapshot = models.CharField(max_length=500, blank=True)
+    variant_label_snapshot = models.CharField(max_length=120, blank=True)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["order", "variant"], name="unique_order_variant"),
-            models.CheckConstraint(condition=Q(quantity__gte=1, quantity__lte=20),
-                                   name="order_item_quantity_range"),
-            models.CheckConstraint(condition=Q(unit_price_toman__gt=0),
-                                   name="order_item_price_positive"),
+            models.CheckConstraint(condition=Q(quantity__gte=1, quantity__lte=20), name="order_item_quantity_range"),
+            models.CheckConstraint(condition=Q(unit_price_toman__gt=0), name="order_item_price_positive"),
         ]
 
+
+class StockReservation(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="stock_reservations")
+    product = models.ForeignKey("catalog.Product", on_delete=models.PROTECT)
+    quantity = models.PositiveIntegerField()
+    state = models.CharField(max_length=10, choices=[("RESERVED", "رزرو"), ("CONSUMED", "فروش"), ("RELEASED", "آزادشده")], default="RESERVED")
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["order", "product"], name="order_product_reservation"),
+                       models.CheckConstraint(condition=Q(quantity__gt=0), name="reservation_positive_quantity")]
+
+
+class ShippingMethod(TimeStampedModel):
+    title = models.CharField(max_length=120)
+    price_toman = models.PositiveBigIntegerField(default=0)
+    free_above_toman = models.PositiveBigIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.title
 
 class OrderStatusHistory(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="status_history")

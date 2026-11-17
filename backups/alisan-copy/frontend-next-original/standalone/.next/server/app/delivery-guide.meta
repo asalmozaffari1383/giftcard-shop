@@ -1,0 +1,35 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/delivery-guide/layout,_N_T_/delivery-guide/page,_N_T_/delivery-guide"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/_index",
+    "/delivery-guide/__PAGE__"
+  ],
+  "prefetchHints": {
+    "hints": 0,
+    "slots": {
+      "children": {
+        "hints": 64,
+        "slots": {
+          "children": {
+            "hints": 160,
+            "slots": null
+          }
+        }
+      }
+    }
+  },
+  "routeCache": {
+    "key": "/route-cache/APP_PAGE/fb5a9dd09b6c658bc87a53eea1d49389bddfa09580d634af00a019b80e4ced89/$/delivery-guide",
+    "owner": {
+      "kind": "APP_PAGE",
+      "sourceRoute": "/delivery-guide/page"
+    },
+    "isFallback": false
+  }
+}

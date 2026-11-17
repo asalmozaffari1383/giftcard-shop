@@ -6,7 +6,9 @@ from pathlib import Path
 
 from cryptography.fernet import Fernet
 from django.core.exceptions import ImproperlyConfigured
+from .environment import load_local_environment
 
+load_local_environment()
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
@@ -36,11 +38,13 @@ INSTALLED_APPS = [
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware", "corsheaders.middleware.CorsMiddleware",
+    "apps.common.middleware.CatalogOnlyMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware", "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware", "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware", "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 ROOT_URLCONF = "config.urls"
+CATALOG_ONLY = os.getenv("CATALOG_ONLY", "false").lower() == "true"
 TEMPLATES = [{"BACKEND": "django.template.backends.django.DjangoTemplates", "DIRS": [BASE_DIR / "templates"],
               "APP_DIRS": True, "OPTIONS": {"context_processors": [
                   "django.template.context_processors.debug", "django.template.context_processors.request",
@@ -51,10 +55,10 @@ AUTH_USER_MODEL = "users.User"
 DATABASES = {"default": {
     "ENGINE": "django.db.backends.postgresql", "NAME": required("POSTGRES_DB"),
     "USER": required("POSTGRES_USER"), "PASSWORD": required("POSTGRES_PASSWORD"),
-    "HOST": os.getenv("POSTGRES_HOST", "localhost"), "PORT": os.getenv("POSTGRES_PORT", "5432"),
+    "HOST": os.getenv("POSTGRES_HOST", "localhost"), "PORT": os.getenv("POSTGRES_PORT", "5433"),
     "CONN_MAX_AGE": 60, "CONN_HEALTH_CHECKS": True, "OPTIONS": {"connect_timeout": 5},
 }}
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6380/0")
 CACHES = {"default": {"BACKEND": "django_redis.cache.RedisCache", "LOCATION": REDIS_URL,
                        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"}}}
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
@@ -68,6 +72,7 @@ CELERY_BEAT_SCHEDULE = {
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_IGNORE_RESULT = True
+CELERY_TASK_DEFAULT_QUEUE = "alisan"
 REST_FRAMEWORK = {
     "URL_FORMAT_OVERRIDE": None,
     "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
@@ -86,7 +91,7 @@ SIMPLE_JWT = {"ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
               "BLACKLIST_AFTER_ROTATION": True,
               "SIGNING_KEY": os.getenv("JWT_SIGNING_KEY", SECRET_KEY)}
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Digital Marketplace API",
+    "TITLE": "Alisan Shop API",
     "VERSION": "1.0.0",
     "ENUM_NAME_OVERRIDES": {
         "InventoryStatusEnum": "apps.inventory.models.DigitalItem.Status",
@@ -118,15 +123,18 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_NAME = "alisan_sessionid"
+CSRF_COOKIE_NAME = "alisan_csrftoken"
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_SSL_REDIRECT = not DEBUG
+SECURE_REDIRECT_EXEMPT = [r"^health/(live|ready)/$"]
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if os.getenv("TRUST_PROXY") == "true" else None
 SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv("SECURE_HSTS_INCLUDE_SUBDOMAINS", "false").lower() == "true"
 SECURE_HSTS_PRELOAD = os.getenv("SECURE_HSTS_PRELOAD", "false").lower() == "true"
 X_FRAME_OPTIONS = "DENY"
-DATA_UPLOAD_MAX_MEMORY_SIZE = 2_500_000
+DATA_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOGGING = {
@@ -156,16 +164,21 @@ except (ValueError, TypeError) as exc:
 INVENTORY_FINGERPRINT_KEY = os.getenv("INVENTORY_FINGERPRINT_KEY", SECRET_KEY if DEBUG else "")
 if len(INVENTORY_FINGERPRINT_KEY) < 32:
     raise ImproperlyConfigured("INVENTORY_FINGERPRINT_KEY must contain at least 32 characters")
-PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://localhost:8000" if DEBUG else "").rstrip("/")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000" if DEBUG else "").rstrip("/")
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://localhost:8001" if DEBUG else "").rstrip("/")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3001" if DEBUG else "").rstrip("/")
 if not PUBLIC_BASE_URL:
     raise ImproperlyConfigured("PUBLIC_BASE_URL is required")
 if not DEBUG and not PUBLIC_BASE_URL.startswith("https://"):
     raise ImproperlyConfigured("PUBLIC_BASE_URL must use HTTPS in production")
-SMS_API_URL = os.getenv("SMS_API_URL", "")
+SMS_PROVIDER = os.getenv("SMS_PROVIDER", "generic")
+if SMS_PROVIDER not in {"generic", "smsir"}:
+    raise ImproperlyConfigured("SMS_PROVIDER must be generic or smsir")
+SMS_API_URL = os.getenv("SMS_API_URL", "https://api.sms.ir/v1/send/verify" if SMS_PROVIDER == "smsir" else "")
 SMS_API_KEY = os.getenv("SMS_API_KEY", "")
 SMS_TEMPLATE_ID = os.getenv("SMS_TEMPLATE_ID", "")
 SMS_ORDER_TEMPLATE_ID = os.getenv("SMS_ORDER_TEMPLATE_ID", "")
+SMS_OTP_PARAMETER = os.getenv("SMS_OTP_PARAMETER", "CODE")
+SMS_ORDER_PARAMETER = os.getenv("SMS_ORDER_PARAMETER", "ORDER_REFERENCE")
 DEVELOPMENT_OTP_CODE = os.getenv("DEVELOPMENT_OTP_CODE", "") if DEBUG else ""
 if DEVELOPMENT_OTP_CODE and (len(DEVELOPMENT_OTP_CODE) != 6 or not DEVELOPMENT_OTP_CODE.isascii() or
                              not DEVELOPMENT_OTP_CODE.isdigit()):

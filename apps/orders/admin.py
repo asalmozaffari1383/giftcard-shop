@@ -1,10 +1,12 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.db.models import Count
 from django.utils.html import format_html
+from rest_framework.exceptions import ValidationError
 
 from apps.common.admin import AdminRoleRequiredMixin
 
-from .models import Cart, CartItem, Coupon, Order, OrderItem, OrderStatusHistory
+from .models import Cart, CartItem, Coupon, Order, OrderItem, OrderStatusHistory, ShippingMethod
+from .physical import advance_order
 
 
 class OrderItemInline(admin.TabularInline):
@@ -39,11 +41,28 @@ class OrderAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
     list_filter = ("status", "created_at", "paid_at")
     search_fields = ("id", "user__phone_number", "items__variant__sku", "items__variant__product__title_fa")
     readonly_fields = ("id", "user", "status", "subtotal_toman", "discount_toman", "total_toman",
-                       "coupon", "expires_at", "paid_at", "idempotency_key", "created_at", "updated_at")
+                       "coupon", "expires_at", "paid_at", "idempotency_key", "created_at", "updated_at",
+                       "shipping_toman", "shipping_address", "shipping_method", "is_physical")
     inlines = (OrderItemInline, OrderHistoryInline)
     date_hierarchy = "created_at"
     list_select_related = ("user", "coupon")
     list_per_page = 30
+    actions = ("mark_shipped", "mark_delivered")
+
+    def _advance(self, request, queryset, target):
+        for order in queryset:
+            try:
+                advance_order(order.pk, target)
+            except ValidationError as exc:
+                self.message_user(request, f"{str(order.pk)[:8]}: {exc.detail}", messages.ERROR)
+
+    @admin.action(description="ارسال سفارش‌های انتخابی (پس از ثبت کد رهگیری)")
+    def mark_shipped(self, request, queryset):
+        self._advance(request, queryset, Order.Status.SHIPPED)
+
+    @admin.action(description="تأیید تحویل سفارش‌های ارسال‌شده")
+    def mark_delivered(self, request, queryset):
+        self._advance(request, queryset, Order.Status.COMPLETED)
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(_item_count=Count("items"))
@@ -55,7 +74,7 @@ class OrderAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
     @admin.display(description="وضعیت", ordering="status")
     def status_badge(self, obj):
         colors = {"COMPLETED": "#087f5b", "PENDING": "#b26a00", "PROCESSING": "#5f3dc4",
-                  "CANCELED": "#6b7280", "FAILED": "#c92a2a", "REFUNDED": "#1971c2"}
+                  "SHIPPED": "#1971c2", "CANCELED": "#6b7280", "FAILED": "#c92a2a", "REFUNDED": "#1971c2"}
         return format_html('<b style="color:{}">{}</b>', colors.get(obj.status, "#444"), obj.get_status_display())
 
     @admin.display(description="اقلام", ordering="_item_count")
@@ -70,7 +89,7 @@ class OrderAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
         return False
 
     def has_change_permission(self, request, obj=None):
-        return False
+        return self._has_admin_role(request)
 
     def has_delete_permission(self, request, obj=None):
         return False
@@ -78,7 +97,7 @@ class OrderAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
 
 @admin.register(Coupon)
 class CouponAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
-    list_display = ("code", "percent_off", "max_discount_toman", "usage", "starts_at", "ends_at", "is_active")
+    list_display = ("code", "percent_off", "amount_off", "assigned_user", "birthday_only", "usage", "starts_at", "ends_at", "is_active")
     list_filter = ("is_active", "starts_at", "ends_at")
     search_fields = ("code",)
     readonly_fields = ("used_count", "created_at", "updated_at")
@@ -87,6 +106,12 @@ class CouponAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
     @admin.display(description="مصرف")
     def usage(self, obj):
         return f"{obj.used_count:,} / {obj.usage_limit:,}"
+
+
+@admin.register(ShippingMethod)
+class ShippingMethodAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
+    list_display = ("title", "price_toman", "free_above_toman", "is_active")
+    list_editable = ("price_toman", "free_above_toman", "is_active")
 
 
 @admin.register(Cart)

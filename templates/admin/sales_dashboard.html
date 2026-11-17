@@ -1,0 +1,10 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<p><a href="{% url 'admin:index' %}">مدیریت فروشگاه</a> · <a href="{% url 'admin:catalog_product_changelist' %}?low_stock=low">گزارش موجودی</a></p>
+<div class="alisan-metrics"><article><h2>فروش تأییدشده</h2><strong>{{ total_sales }} تومان</strong></article><article><h2>سفارش پرداخت‌شده</h2><strong>{{ order_count }}</strong></article><article><h2>نرخ مشتریان بازگشتی</h2><strong>{{ return_rate }}٪</strong><p>مشتریان دارای بیش از یک خرید پرداخت‌شده از کل مشتریان خریدار</p></article></div>
+<h2>فروش روزانه — ۳۰ روز اخیر</h2>
+<div class="alisan-chart" role="img" aria-label="نمودار فروش روزانه">{% for row in daily %}<div><b style="height:{{ row.height }}px" title="{{ row.period }}: {{ row.total }} تومان"></b><small>{{ row.period|date:"m/d" }}</small></div>{% empty %}<p>هنوز فروش ثبت نشده است.</p>{% endfor %}</div>
+<h2>فروش ماهانه — یک سال اخیر</h2>
+<div class="alisan-chart" role="img" aria-label="نمودار فروش ماهانه">{% for row in monthly %}<div><b style="height:{{ row.height }}px" title="{{ row.period|date:'Y/m' }}: {{ row.total }} تومان"></b><small>{{ row.period|date:"Y/m" }}</small></div>{% empty %}<p>هنوز فروش ثبت نشده است.</p>{% endfor %}</div>
+<h2>هشدار موجودی کم</h2><table><thead><tr><th>محصول</th><th>موجودی</th></tr></thead><tbody>{% for product in low_stock %}<tr><td><a href="{% url 'admin:catalog_product_change' product.pk %}">{{ product.title_fa }}</a></td><td>{{ product.stock }}</td></tr>{% empty %}<tr><td colspan="2">کالای کم‌موجود ندارید.</td></tr>{% endfor %}</tbody></table>
+{% endblock %}

@@ -3,13 +3,17 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from apps.common.dashboard import sales_dashboard
+from apps.support.school_lists import admin_school_file
 
-admin.site.site_header = "مدیریت گیفت‌کارت شاپ"
-admin.site.site_title = "پنل مدیریت فروشگاه"
-admin.site.index_title = "کنترل فروش، سفارش‌ها و موجودی دیجیتال"
+admin.site.site_header = "مدیریت آلیسان"
+admin.site.site_title = "پنل مدیریت آلیسان"
+admin.site.index_title = "کنترل فروش، سفارش‌ها و موجودی آلیسان"
 
 urlpatterns = [
     path("health/", include("apps.common.urls")),
+    path("admin/overview/", admin.site.admin_view(sales_dashboard), name="sales-dashboard"),
+    path("admin/school-lists/<int:pk>/file/", admin.site.admin_view(admin_school_file), name="school-list-admin-file"),
     path("admin/", admin.site.urls),
     path("api/v1/auth/", include("apps.users.urls")),
     path("api/v1/catalog/", include("apps.catalog.urls")),

@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
-const ACCESS_COOKIE = "giftcard_access";
-const REFRESH_COOKIE = "giftcard_refresh";
+const API_URL = (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api/v1").replace(/\/$/, "");
+const ACCESS_COOKIE = "alisan_access";
+const REFRESH_COOKIE = "alisan_refresh";
 const secure = process.env.AUTH_COOKIE_SECURE === "true";
 
 function setAuthCookies(response: NextResponse, access: string, refresh?: string) {
@@ -46,7 +46,9 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
     return response;
   }
 
-  let backendResponse = await callBackend(request, path, body, access);
+  let backendResponse: Response;
+  try { backendResponse = await callBackend(request, path, body, access); }
+  catch { return NextResponse.json({ detail: "ارتباط با فروشگاه برقرار نشد. لطفاً دوباره تلاش کنید." }, { status: 502 }); }
 
   if (path === "auth/otp/verify" && backendResponse.ok) {
     const data = await backendResponse.json() as { access: string; refresh: string; user: unknown };
@@ -57,7 +59,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
 
   let rotatedAccess: string | undefined;
   let rotatedRefresh: string | undefined;
-  if (backendResponse.status === 401 && refresh && !path.startsWith("auth/")) {
+  if (backendResponse.status === 401 && refresh && !path.startsWith("auth/token/") && !path.startsWith("auth/otp/")) {
     const refreshResponse = await fetch(`${API_URL}/auth/token/refresh/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -73,9 +75,9 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   }
 
   const responseBody = await backendResponse.arrayBuffer();
-  const response = new NextResponse(responseBody, {
+  const response = new NextResponse(backendResponse.status === 204 ? null : responseBody, {
     status: backendResponse.status,
-    headers: { "Content-Type": backendResponse.headers.get("Content-Type") || "application/json" },
+    headers: { "Content-Type": backendResponse.headers.get("Content-Type") || "application/json", "Cache-Control": "no-store" },
   });
   if (rotatedAccess) setAuthCookies(response, rotatedAccess, rotatedRefresh);
   if (backendResponse.status === 401 && refresh && !rotatedAccess) clearAuthCookies(response);

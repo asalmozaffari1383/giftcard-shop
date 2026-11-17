@@ -1,0 +1,19 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/account/page": "app/account/page.js",
+  "/api/backend/[...path]/route": "app/api/backend/[...path]/route.js",
+  "/cart/page": "app/cart/page.js",
+  "/checkout/page": "app/checkout/page.js",
+  "/contact/page": "app/contact/page.js",
+  "/login/page": "app/login/page.js",
+  "/orders/[id]/page": "app/orders/[id]/page.js",
+  "/orders/page": "app/orders/page.js",
+  "/page": "app/page.js",
+  "/payment/result/page": "app/payment/result/page.js",
+  "/products/[slug]/page": "app/products/[slug]/page.js",
+  "/products/page": "app/products/page.js",
+  "/reviews/page": "app/reviews/page.js",
+  "/tickets/[id]/page": "app/tickets/[id]/page.js",
+  "/tickets/page": "app/tickets/page.js"
+}

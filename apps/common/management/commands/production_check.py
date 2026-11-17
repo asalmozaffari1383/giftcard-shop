@@ -43,18 +43,22 @@ def collect_production_issues(*, live=False):
         errors.append("TRUST_PROXY=true is required behind the deployment reverse proxy.")
     if settings.DEVELOPMENT_OTP_CODE:
         errors.append("DEVELOPMENT_OTP_CODE must be empty.")
-    if settings.PAYMENT_GATEWAY != "zarinpal":
+    if live and settings.CATALOG_ONLY:
+        errors.append("CATALOG_ONLY must be false for a live sales launch.")
+    if settings.CATALOG_ONLY:
+        warnings.append("Catalog-only publication: customer APIs, OTP and payments are disabled.")
+    if not settings.CATALOG_ONLY and settings.PAYMENT_GATEWAY != "zarinpal":
         errors.append("PAYMENT_GATEWAY must be zarinpal.")
-    if _placeholder(settings.ZARINPAL_MERCHANT_ID):
+    if not settings.CATALOG_ONLY and _placeholder(settings.ZARINPAL_MERCHANT_ID):
         errors.append("ZARINPAL_MERCHANT_ID is missing or still a placeholder.")
-    if live and settings.ZARINPAL_SANDBOX:
+    if not settings.CATALOG_ONLY and live and settings.ZARINPAL_SANDBOX:
         errors.append("ZARINPAL_SANDBOX must be false for a live launch.")
-    elif settings.ZARINPAL_SANDBOX:
+    elif not settings.CATALOG_ONLY and settings.ZARINPAL_SANDBOX:
         warnings.append("Zarinpal sandbox is enabled; suitable for final staging only.")
-    if not _https(settings.SMS_API_URL):
+    if not settings.CATALOG_ONLY and not _https(settings.SMS_API_URL):
         errors.append("SMS_API_URL must be the provider HTTPS endpoint.")
-    if (_placeholder(settings.SMS_API_KEY) or _placeholder(settings.SMS_TEMPLATE_ID)
-            or _placeholder(settings.SMS_ORDER_TEMPLATE_ID)):
+    if not settings.CATALOG_ONLY and (_placeholder(settings.SMS_API_KEY) or _placeholder(settings.SMS_TEMPLATE_ID)
+                                     or _placeholder(settings.SMS_ORDER_TEMPLATE_ID)):
         errors.append("SMS_API_KEY, SMS_TEMPLATE_ID and SMS_ORDER_TEMPLATE_ID must be configured.")
     if _placeholder(os.getenv("POSTGRES_PASSWORD")):
         errors.append("POSTGRES_PASSWORD is missing or still a placeholder.")
@@ -75,7 +79,8 @@ def collect_production_issues(*, live=False):
     }
     missing_business = [name for name, value in business_fields.items() if _placeholder(value)]
     if missing_business:
-        errors.append(f"Public legal business fields are incomplete: {', '.join(missing_business)}.")
+        (warnings if settings.CATALOG_ONLY else errors).append(
+            f"Public legal business fields are incomplete: {', '.join(missing_business)}.")
     enamad_fields = (os.getenv("NEXT_PUBLIC_ENAMAD_URL", ""), os.getenv("NEXT_PUBLIC_ENAMAD_LOGO_URL", ""))
     if any(_placeholder(value) for value in enamad_fields):
         message = "Enamad verification and logo URLs are not configured."

@@ -1,9 +1,12 @@
 .git
+.runtime
 .github
 .venv
 __pycache__
 *.pyc
 .env
+.env.production
+backups/
 media
 staticfiles
 .pytest_cache

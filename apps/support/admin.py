@@ -1,8 +1,29 @@
 from django.contrib import admin
+from django.urls import reverse
+from django.utils.html import format_html
 
-from apps.common.admin import StaffRoleRequiredMixin
+from apps.common.admin import AdminRoleRequiredMixin, StaffRoleRequiredMixin
 
-from .models import Inquiry, Ticket, TicketMessage
+from .models import Inquiry, SchoolList, Ticket, TicketMessage
+
+
+@admin.register(SchoolList)
+class SchoolListAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
+    list_display = ("title", "user", "status", "quoted_total", "created_at")
+    list_filter = ("status",)
+    search_fields = ("title", "user__phone_number")
+    readonly_fields = ("user", "title", "notes", "download_file", "created_at", "updated_at")
+    exclude = ("file_content", "file_type")
+
+    @admin.display(description="لیست بارگذاری‌شده")
+    def download_file(self, obj):
+        return format_html('<a href="{}">دریافت فایل لیست مدرسه</a>', reverse("school-list-admin-file", args=[obj.pk]))
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 class TicketMessageInline(admin.StackedInline):

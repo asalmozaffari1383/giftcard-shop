@@ -32,7 +32,7 @@ class DuplicateInventoryTests(TestCase):
         category = Category.objects.create(title_fa="کارت", slug="duplicate-category")
         brand = Brand.objects.create(title_fa="برند", slug="duplicate-brand")
         product = Product.objects.create(category=category, brand=brand, sku="DP1",
-                                         title_fa="محصول", slug="duplicate-product")
+                                         title_fa="محصول", slug="duplicate-product", kind="DIGITAL")
         variant = ProductVariant.objects.create(product=product, sku="DV1", label="10",
                                                 face_value=10, price_toman=1000)
         first = DigitalItem(variant=variant)

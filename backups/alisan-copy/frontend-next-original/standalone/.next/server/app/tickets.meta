@@ -1,0 +1,35 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/tickets/layout,_N_T_/tickets/page,_N_T_/tickets"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/_index",
+    "/tickets/__PAGE__"
+  ],
+  "prefetchHints": {
+    "hints": 0,
+    "slots": {
+      "children": {
+        "hints": 64,
+        "slots": {
+          "children": {
+            "hints": 160,
+            "slots": null
+          }
+        }
+      }
+    }
+  },
+  "routeCache": {
+    "key": "/route-cache/APP_PAGE/3cc53ffd93a144b6b07b6ead4c3836c723805db5ca79b8f33aac242f9e828ab7/$/tickets",
+    "owner": {
+      "kind": "APP_PAGE",
+      "sourceRoute": "/tickets/page"
+    },
+    "isFallback": false
+  }
+}

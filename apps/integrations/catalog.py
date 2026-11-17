@@ -17,7 +17,7 @@ from apps.catalog.models import Brand, Category, Product, ProductVariant
 
 from .models import CatalogCandidate, CatalogImportBatch, CatalogSource, normalize_catalog_title
 
-USER_AGENT = "GiftcardShopCatalogResearch/1.0"
+USER_AGENT = "AlisanShopCatalogResearch/1.0"
 REQUEST_TIMEOUT = (5, 25)
 
 BRAND_RULES = (

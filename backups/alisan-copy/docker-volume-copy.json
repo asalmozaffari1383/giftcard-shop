@@ -1,0 +1,34 @@
+{
+  "postgres_data": {
+    "source": "giftcard-shop_postgres_data",
+    "target": "alisan-shop_postgres_data",
+    "manifest_sha256": "af82ac33d928b001db46e67294743fb75f794cc2406dcde09dc1dda84890e7b4",
+    "files": 1532,
+    "copy_verified": true,
+    "source_unchanged": true
+  },
+  "redis_data": {
+    "source": "giftcard-shop_redis_data",
+    "target": "alisan-shop_redis_data",
+    "manifest_sha256": "248064bd4bdbd93c375d441d1faa0ac2fdf23c9a3527acfc02117db1bc3af687",
+    "files": 4,
+    "copy_verified": true,
+    "source_unchanged": true
+  },
+  "media_data": {
+    "source": "giftcard-shop_media_data",
+    "target": "alisan-shop_media_data",
+    "manifest_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "files": 0,
+    "copy_verified": true,
+    "source_unchanged": true
+  },
+  "static_data": {
+    "source": "giftcard-shop_static_data",
+    "target": "alisan-shop_static_data",
+    "manifest_sha256": "b3ace7708e601c12e9e6d09b5f2950e6721ac01418e8686a8ebc035342e267f8",
+    "files": 155,
+    "copy_verified": true,
+    "source_unchanged": true
+  }
+}

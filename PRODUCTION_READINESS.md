@@ -50,7 +50,7 @@ docker compose --env-file .env.production -f compose.production.yaml exec web py
 
 ```bash
 bash scripts/backup_postgres.sh
-RESTORE_CONFIRM=RESTORE-giftcard_shop bash scripts/restore_postgres.sh backups/postgres_giftcard_shop_DATE.sql.gz
+RESTORE_CONFIRM=RESTORE-alisan_shop bash scripts/restore_postgres.sh backups/postgres_alisan_shop_DATE.sql.gz
 ```
 
 بکاپ دیتابیس بدون فایل `.env.production` و کلیدهای رمزنگاری برای بازیابی کدها کافی نیست. نسخه رمزگذاری‌شده Secretها باید جداگانه و خارج از سرور نگهداری شود. Restore ابتدا سرویس‌های وب و Celery را متوقف می‌کند و بدون عبارت تأیید اجرا نمی‌شود.

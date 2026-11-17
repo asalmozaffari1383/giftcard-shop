@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from apps.common.admin import AdminRoleRequiredMixin
 
-from .models import OTPChallenge, Profile, User
+from .models import Address, OTPChallenge, Profile, User, WishlistItem
 
 
 class UserCreationForm(forms.ModelForm):
@@ -59,4 +59,24 @@ class OTPAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
         return False
 
     def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Address)
+class AddressAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
+    list_display = ("title", "recipient_name", "user", "city", "is_default", "created_at")
+    list_filter = ("is_default", "province", "city")
+    search_fields = ("recipient_name", "user__phone_number", "postal_code", "city")
+
+
+@admin.register(WishlistItem)
+class WishlistAdmin(AdminRoleRequiredMixin, admin.ModelAdmin):
+    list_display = ("product", "user", "created_at")
+    search_fields = ("product__title_fa", "user__phone_number")
+    readonly_fields = ("product", "user", "created_at", "updated_at")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
         return False

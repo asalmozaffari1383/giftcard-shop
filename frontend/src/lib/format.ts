@@ -16,7 +16,7 @@ export function normalizeIranianPhone(value: string) {
 }
 
 export const orderStatus: Record<string, string> = {
-  PENDING: "در انتظار پرداخت", PROCESSING: "در حال پردازش", COMPLETED: "تکمیل‌شده",
+  PENDING: "در انتظار پرداخت", PROCESSING: "در حال آماده‌سازی", SHIPPED: "ارسال‌شده", COMPLETED: "تحویل‌شده",
   CANCELED: "لغوشده", FAILED: "ناموفق", REFUNDED: "بازپرداخت‌شده",
 };
 
@@ -24,6 +24,6 @@ export const ticketStatus: Record<string, string> = { OPEN: "باز", WAITING: "
 
 export function mediaUrl(value: string | null) {
   if (!value || value.startsWith("http://") || value.startsWith("https://")) return value;
-  const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+  const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api/v1";
   return `${new URL(api).origin}${value.startsWith("/") ? value : `/${value}`}`;
 }
